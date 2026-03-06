@@ -89,4 +89,45 @@ public class EmailServiceImpl implements EmailService {
         mailSender.send(mail);
     }
 
+    @Override
+    @Async
+    public void sendPasswordResetEmail(String toEmail, String token) {
+        String resetLink = "http://localhost:8080/api/auth/reset-password?token=" + token;
+
+        SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setFrom(from);
+        mailMessage.setTo(toEmail);
+        mailMessage.setSubject("Reset your password");
+        mailMessage.setText(
+                """
+                        We received a request to reset your password.
+
+                        Use the link below to reset it:
+
+                        %s
+
+                        This link will expire soon. If you did not request this, you can ignore this email.
+                        """.formatted(resetLink));
+        mailSender.send(mailMessage);
+    }
+
+    @Override
+    @Async
+    public void sendPasswordChangedEmail(String toEmail) {
+        SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setFrom(from);
+        mailMessage.setTo(toEmail);
+        mailMessage.setSubject("Your password was changed");
+        mailMessage.setText(
+                """
+                        Your password was recently changed.
+
+                        If you did not perform this action, please contact support immediately.
+
+                        Regards,
+                        Ecommerce Team
+                        """);
+        mailSender.send(mailMessage);
+    }
+
 }

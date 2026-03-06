@@ -5,9 +5,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.ecommerceproject.dto.ApiResponseDTO;
+import com.example.ecommerceproject.dto.ForgotPasswordRequestDTO;
 import com.example.ecommerceproject.dto.LoginRequestDTO;
 import com.example.ecommerceproject.dto.LoginResponseDTO;
 import com.example.ecommerceproject.dto.RegisterRequestDTO;
+import com.example.ecommerceproject.dto.ResetPasswordRequestDTO;
 import com.example.ecommerceproject.dto.SellerRegisterRequestDTO;
 import com.example.ecommerceproject.service.AuthService;
 
@@ -17,8 +19,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,14 +40,14 @@ public class AuthController {
     }
 
     @Operation(summary = "Activate user account using activation token")
-    @GetMapping("/activate")
+    @PutMapping("/activate")
     public ResponseEntity<ApiResponseDTO> activateAccount(@RequestParam String token) {
         return ResponseEntity.ok(authService.activateAccount(token));
     }
 
     @Operation(summary = "Resend Activation Link")
-    @GetMapping("/resend-activation")
-    public ResponseEntity<ApiResponseDTO> resendActivation(@RequestParam String email) {
+    @PostMapping("/resend-activation")
+    public ResponseEntity<ApiResponseDTO> resendActivation(@RequestBody String email) {
         return ResponseEntity.ok(authService.resendActivationLink(email));
     }
 
@@ -71,5 +73,17 @@ public class AuthController {
             token = authHeader.substring(7);
         }
         return ResponseEntity.ok(authService.logout(token));
+    }
+
+    @Operation(summary = "Request password reset link")
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO dto) {
+        return ResponseEntity.ok(authService.requestPasswordReset(dto));
+    }
+
+    @Operation(summary = "Reset password using token")
+    @PutMapping("/reset-password")
+    public ResponseEntity<ApiResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO dto) {
+        return ResponseEntity.ok(authService.resetPassword(dto));
     }
 }

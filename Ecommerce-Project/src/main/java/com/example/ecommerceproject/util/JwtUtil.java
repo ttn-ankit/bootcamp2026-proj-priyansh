@@ -19,7 +19,11 @@ import io.jsonwebtoken.security.Keys;
 public class JwtUtil {
 
         private static final long ACCESS_TOKEN_VALIDITY = 86400000;
+        private static final long PASSWORD_RESET_TOKEN_VALIDITY = 3600000;
         private static final int HMAC_KEY_MIN_BYTES = 32;
+        private static final String CLAIM_PURPOSE = "purpose";
+        private static final String PURPOSE_PASSWORD_RESET = "password_reset";
+        private static final String CLAIM_PASSWORD_UPDATED_AT = "pwdUpdatedAt";
 
         private final SecretKey key;
 
@@ -50,6 +54,32 @@ public class JwtUtil {
                                                 new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY))
                                 .signWith(key)
                                 .compact();
+        }
+
+        public String generatePasswordResetToken(Long userId, String email, long passwordUpdatedAtMillis) {
+                return Jwts.builder()
+                                .setId(UUID.randomUUID().toString())
+                                .setSubject(email)
+                                .claim("userId", userId)
+                                .claim(CLAIM_PURPOSE, PURPOSE_PASSWORD_RESET)
+                                .claim(CLAIM_PASSWORD_UPDATED_AT, passwordUpdatedAtMillis)
+                                .setIssuedAt(new Date())
+                                .setExpiration(new Date(System.currentTimeMillis() + PASSWORD_RESET_TOKEN_VALIDITY))
+                                .signWith(key)
+                                .compact();
+        }
+
+        public boolean isPasswordResetTokenValid(String token) {
+                try {
+                        Claims claims = extractAllClaims(token);
+                        String purpose = claims.get(CLAIM_PURPOSE, String.class);
+                        if (!PURPOSE_PASSWORD_RESET.equals(purpose)) {
+                                return false;
+                        }
+                        return claims.getExpiration().after(new Date());
+                } catch (Exception e) {
+                        return false;
+                }
         }
 
         public String extractJti(String token) {

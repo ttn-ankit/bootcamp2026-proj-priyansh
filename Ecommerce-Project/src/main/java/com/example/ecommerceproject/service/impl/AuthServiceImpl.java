@@ -1,9 +1,11 @@
 package com.example.ecommerceproject.service.impl;
 
 import com.example.ecommerceproject.dto.ApiResponseDTO;
+import com.example.ecommerceproject.dto.ForgotPasswordRequestDTO;
 import com.example.ecommerceproject.dto.LoginRequestDTO;
 import com.example.ecommerceproject.dto.LoginResponseDTO;
 import com.example.ecommerceproject.dto.RegisterRequestDTO;
+import com.example.ecommerceproject.dto.ResetPasswordRequestDTO;
 import com.example.ecommerceproject.dto.SellerRegisterRequestDTO;
 import com.example.ecommerceproject.entity.*;
 import com.example.ecommerceproject.enums.AddressLabelEnums;
@@ -32,6 +34,7 @@ import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Claims;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @Service
@@ -243,6 +246,70 @@ public class AuthServiceImpl implements AuthService {
         Claims claims = jwtUtil.extractAllClaims(token);
         tokenBlacklist.add(claims.getId(), claims.getExpiration().getTime());
         return new ApiResponseDTO("Logged out successfully");
+    }
+
+    @Override
+    public ApiResponseDTO requestPasswordReset(ForgotPasswordRequestDTO dto) {
+        User user = userRepository.findByEmailIgnoreCase(dto.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!user.isActive()) {
+            throw new BadRequestException("Account is not activated");
+        }
+
+        long pwdUpdatedAtMillis = user.getPasswordUpdateDate() == null
+                ? 0L
+                : user.getPasswordUpdateDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+        String token = jwtUtil.generatePasswordResetToken(user.getId(), user.getEmail(), pwdUpdatedAtMillis);
+        emailService.sendPasswordResetEmail(user.getEmail(), token);
+
+        return new ApiResponseDTO("Password reset link has been sent to your email");
+    }
+
+    @Override
+    public ApiResponseDTO resetPassword(ResetPasswordRequestDTO dto) {
+        if (!dto.getPassword().equals(dto.getConfirmPassword())) {
+            throw new BadRequestException("Passwords do not match");
+        }
+
+        String token = dto.getToken();
+        if (!jwtUtil.isPasswordResetTokenValid(token)) {
+            throw new InvalidTokenException("Invalid or expired reset token");
+        }
+
+        Claims claims = jwtUtil.extractAllClaims(token);
+        Long userId = claims.get("userId", Long.class);
+        String email = claims.getSubject();
+        Long tokenPwdUpdatedAt = claims.get("pwdUpdatedAt", Long.class);
+        if (userId == null || email == null || tokenPwdUpdatedAt == null) {
+            throw new InvalidTokenException("Invalid reset token");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!email.equalsIgnoreCase(user.getEmail())) {
+            throw new InvalidTokenException("Invalid reset token");
+        }
+        if (!user.isActive()) {
+            throw new BadRequestException("Account is not activated");
+        }
+
+        long currentPwdUpdatedAtMillis = user.getPasswordUpdateDate() == null
+                ? 0L
+                : user.getPasswordUpdateDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+        if (currentPwdUpdatedAtMillis != tokenPwdUpdatedAt.longValue()) {
+            throw new InvalidTokenException("Reset token already used or invalid");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        user.setPasswordUpdateDate(LocalDateTime.now());
+        userRepository.save(user);
+
+        emailService.sendPasswordChangedEmail(user.getEmail());
+        return new ApiResponseDTO("Password successfully updated");
     }
 
     private User createUser(RegisterRequestDTO dto) {
