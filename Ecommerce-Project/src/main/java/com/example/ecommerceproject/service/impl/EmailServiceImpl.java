@@ -70,4 +70,23 @@ public class EmailServiceImpl implements EmailService {
         mailSender.send(mail);
     }
 
+    @Override
+    @Async
+    public void sendAccountLockedEmail(String email) {
+        SimpleMailMessage mail = new SimpleMailMessage();
+        mail.setFrom(from);
+        mail.setTo(email);
+        mail.setSubject("Account Locked");
+        mail.setText(
+                """
+                Your account has been locked due to multiple failed login attempts.
+
+                Please contact support to unlock your account.
+
+                Regards,
+                Ecommerce Team
+                """);
+        mailSender.send(mail);
+    }
+
 }

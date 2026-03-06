@@ -8,6 +8,8 @@ import com.example.ecommerceproject.dto.SellerRegisterRequestDTO;
 import com.example.ecommerceproject.entity.*;
 import com.example.ecommerceproject.enums.AddressLabelEnums;
 import com.example.ecommerceproject.enums.RoleEnums;
+import com.example.ecommerceproject.config.TokenBlacklist;
+import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.exception.BadRequestException;
 import com.example.ecommerceproject.exception.DuplicateResourceException;
 import com.example.ecommerceproject.exception.InvalidTokenException;
@@ -19,11 +21,15 @@ import com.example.ecommerceproject.util.JwtUtil;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import io.jsonwebtoken.Claims;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -32,6 +38,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional
 public class AuthServiceImpl implements AuthService {
+
+    private static final int MAX_FAILED_ATTEMPTS = 3;
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -44,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
+    private final TokenBlacklist tokenBlacklist;
 
     @Override
     public ApiResponseDTO register(RegisterRequestDTO dto) {
@@ -192,15 +201,49 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public LoginResponseDTO login(LoginRequestDTO dto){
-        authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(dto.getEmail(), dto.getPassword())
-        );
+    public LoginResponseDTO login(LoginRequestDTO dto) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(dto.getEmail(), dto.getPassword()));
 
-        User user = userRepository.findByEmailAndIsDeletedFalse(dto.getEmail()).orElseThrow();
-        String token = jwtUtil.generateToken(user);
-        return new LoginResponseDTO(token, "Login Successfull");
-    }   
+            CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
+            User entity = userRepository.findById(user.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            entity.setInvalidAttemptCount(0);
+            userRepository.save(entity);
+
+            String token = jwtUtil.generateToken(user.getUserId(), user.getUsername(), user.getAuthorities());
+            return new LoginResponseDTO(
+                    token,
+                    user.getAuthorities().stream().toList(),
+                    user.getUsername(),
+                    "Login Successfull!");
+        } catch (BadCredentialsException e) {
+            userRepository.findByEmailAndIsDeletedFalse(dto.getEmail()).ifPresent(user -> {
+                int newCount = (user.getInvalidAttemptCount() == null ? 0 : user.getInvalidAttemptCount()) + 1;
+                user.setInvalidAttemptCount(newCount);
+                if (newCount >= MAX_FAILED_ATTEMPTS) {
+                    user.setLocked(true);
+                    emailService.sendAccountLockedEmail(user.getEmail());
+                }
+                userRepository.save(user);
+            });
+            throw new BadCredentialsException("Invalid email or password.");
+        }
+    }
+
+    @Override
+    public ApiResponseDTO logout(String token) {
+        if (token == null || token.isBlank()) {
+            throw new ApiException("Access token is required", HttpStatus.UNAUTHORIZED);
+        }
+        if (!jwtUtil.isTokenValid(token)) {
+            throw new ApiException("Invalid or expired access token", HttpStatus.UNAUTHORIZED);
+        }
+        Claims claims = jwtUtil.extractAllClaims(token);
+        tokenBlacklist.add(claims.getId(), claims.getExpiration().getTime());
+        return new ApiResponseDTO("Logged out successfully");
+    }
 
     private User createUser(RegisterRequestDTO dto) {
 
@@ -277,8 +320,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void saveAddress(User user, String addressLine, String city,
-                             String state, String country, String zipCode,
-                             AddressLabelEnums label) {
+            String state, String country, String zipCode,
+            AddressLabelEnums label) {
 
         Address address = new Address();
 

@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -41,22 +42,34 @@ public class AuthController {
     public ResponseEntity<ApiResponseDTO> activateAccount(@RequestParam String token) {
         return ResponseEntity.ok(authService.activateAccount(token));
     }
-    
+
     @Operation(summary = "Resend Activation Link")
     @GetMapping("/resend-activation")
-    public ResponseEntity<ApiResponseDTO> resendActivation(@RequestParam String email){
+    public ResponseEntity<ApiResponseDTO> resendActivation(@RequestParam String email) {
         return ResponseEntity.ok(authService.resendActivationLink(email));
     }
 
     @Operation(summary = "Regsiter new Seller")
     @PostMapping("/register/seller")
-    public ResponseEntity<ApiResponseDTO> registerUserSeller(@Valid @RequestBody SellerRegisterRequestDTO registerRequestDTO){
+    public ResponseEntity<ApiResponseDTO> registerUserSeller(
+            @Valid @RequestBody SellerRegisterRequestDTO registerRequestDTO) {
         return ResponseEntity.ok(authService.registerSeller(registerRequestDTO));
     }
 
     @Operation(summary = "Login User")
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO request){
+    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @Operation(summary = "Logout User")
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponseDTO> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+        return ResponseEntity.ok(authService.logout(token));
     }
 }

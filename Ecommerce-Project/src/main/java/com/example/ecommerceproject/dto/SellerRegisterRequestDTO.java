@@ -42,10 +42,6 @@ public class SellerRegisterRequestDTO {
     @Schema(example = "ABC Electronics Pvt Ltd", description = "Seller company name")
     String companyName;
 
-    @NotBlank(message = "Company address is required")
-    @Schema(example = "21 Business Park, Delhi", description = "Seller company address")
-    String companyAddress;
-
     @NotBlank(message = "Company contact is required")
     @Pattern(regexp = "^[0-9]{10}$", message = "Invalid phone number")
     @Schema(example = "9876543210", description = "Company contact number")
