@@ -17,8 +17,8 @@ public class ResetPasswordRequestDTO {
     @Schema(example = "Password@123", description = "New password")
     @NotBlank
     @Pattern(
-            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,15}$",
-            message = "Password must be 8-15 chars with upper, lower, number & special char")
+            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,25}$",
+            message = "Password must be 8-25 chars with at least one lower, upper, digit and special char")
     private String password;
 
     @Schema(example = "Password@123", description = "Confirm new password")

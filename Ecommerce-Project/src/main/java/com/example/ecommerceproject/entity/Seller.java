@@ -5,6 +5,9 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import static lombok.AccessLevel.PRIVATE;
 
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 import com.example.ecommerceproject.audit.Auditable;
 
 @Entity
@@ -13,6 +16,8 @@ import com.example.ecommerceproject.audit.Auditable;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = PRIVATE)
+@SQLDelete(sql = "UPDATE users SET is_deleted = true WHERE id=?")
+@SQLRestriction("is_deleted = false")
 public class Seller extends Auditable{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,4 +38,8 @@ public class Seller extends Auditable{
 
     @Column(name = "is_approved")
     boolean isApproved;
+
+
+    @Column(name = "is_deleted")
+    boolean isDeleted;
 }

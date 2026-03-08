@@ -16,7 +16,7 @@ public interface AuthService {
     ApiResponseDTO approveSeller(Long SellerId);
     ApiResponseDTO rejectSeller(Long SellerId);
     LoginResponseDTO login(LoginRequestDTO responseDTO);
-    ApiResponseDTO logout(String refreshToken);
+    ApiResponseDTO logout(String accessToken, String refreshToken);
     LoginResponseDTO refreshAccessToken(String refreshToken);
     ApiResponseDTO requestPasswordReset(ForgotPasswordRequestDTO dto);
     ApiResponseDTO resetPassword(ResetPasswordRequestDTO dto);

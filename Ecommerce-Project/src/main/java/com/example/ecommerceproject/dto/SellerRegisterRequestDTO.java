@@ -22,7 +22,8 @@ public class SellerRegisterRequestDTO {
     String email;
 
     @NotBlank(message = "Password is mandatory")
-    @Size(min = 8, message = "Password must be at least 8 characters")
+    @Size(min = 8, max = 25, message = "Password must be 8-25 characters")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,25}$", message = "Password must be 8-25 chars with at least one lower, upper, digit and special char")
     @Schema(example = "Password@123", description = "Seller account password")
     String password;
 

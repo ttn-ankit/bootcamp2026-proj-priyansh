@@ -15,6 +15,7 @@ import com.example.ecommerceproject.exception.BadRequestException;
 import com.example.ecommerceproject.exception.DuplicateResourceException;
 import com.example.ecommerceproject.exception.InvalidTokenException;
 import com.example.ecommerceproject.exception.ResourceNotFoundException;
+import com.example.ecommerceproject.config.TokenBlacklist;
 import com.example.ecommerceproject.repository.*;
 import com.example.ecommerceproject.service.AuthService;
 import com.example.ecommerceproject.service.EmailService;
@@ -34,7 +35,11 @@ import io.jsonwebtoken.Claims;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Locale;
 import java.util.UUID;
+
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +47,7 @@ import java.util.UUID;
 public class AuthServiceImpl implements AuthService {
 
     private static final int MAX_FAILED_ATTEMPTS = 3;
+    private static final String PROTECTED_ADMIN_EMAIL = "admin@ecommerce.com";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -55,6 +61,8 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenBlacklist tokenBlacklist;
+    private final MessageSource messageSource;
 
     @Override
     public ApiResponseDTO register(RegisterRequestDTO dto) {
@@ -72,8 +80,7 @@ public class AuthServiceImpl implements AuthService {
 
         createActivationToken(user);
 
-        return new ApiResponseDTO(
-                "Registration successful. Please check email for activation link");
+        return new ApiResponseDTO(msg("auth.registration_success"));
     }
 
     @Override
@@ -92,8 +99,7 @@ public class AuthServiceImpl implements AuthService {
 
         emailService.sendSellerRegistrationEmail(user.getEmail());
 
-        return new ApiResponseDTO(
-                "Seller registered successfully. Waiting for admin approval.");
+        return new ApiResponseDTO(msg("auth.seller_registration_success"));
     }
 
     @Override
@@ -101,104 +107,93 @@ public class AuthServiceImpl implements AuthService {
 
         ActivationToken token = activationTokenRepository
                 .findByToken(tokenValue)
-                .orElseThrow(() -> new InvalidTokenException("Invalid activation token"));
+                .orElseThrow(() -> new InvalidTokenException("auth.invalid_activation_token"));
 
         if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
-
             User user = token.getUser();
-
             activationTokenRepository.delete(token);
-
             createActivationToken(user);
-
-            throw new InvalidTokenException(
-                    "Activation token expired. A new activation link has been sent.");
+            throw new InvalidTokenException("auth.activation_expired");
         }
 
         User user = token.getUser();
-
         user.setActive(true);
-
         userRepository.save(user);
-
         activationTokenRepository.delete(token);
 
-        return new ApiResponseDTO("Account successfully activated");
+        return new ApiResponseDTO(msg("auth.activation_success"));
     }
 
     @Override
     public ApiResponseDTO resendActivationLink(String email) {
 
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("auth.user_not_found"));
 
         if (user.isActive()) {
-            throw new BadRequestException("Account already activated");
+            throw new BadRequestException("auth.account_already_activated");
         }
 
         activationTokenRepository.deleteByUser(user);
-
         createActivationToken(user);
 
-        return new ApiResponseDTO("A new activation link has been sent");
+        return new ApiResponseDTO(msg("auth.resend_activation_success"));
     }
 
     @Override
     public ApiResponseDTO approveSeller(Long sellerId) {
 
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.seller_not_found"));
 
         seller.setApproved(true);
-
         User user = seller.getUser();
         user.setActive(true);
-
         sellerRepository.save(seller);
         userRepository.save(user);
 
-        return new ApiResponseDTO("Seller approved successfully");
+        return new ApiResponseDTO(msg("auth.seller_approved"));
     }
 
     @Override
     public ApiResponseDTO rejectSeller(Long sellerId) {
 
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Seller not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.seller_not_found"));
 
         User user = seller.getUser();
-
+        if (isProtectedAdmin(user)) {
+            throw new BadRequestException("auth.admin_protected");
+        }
         user.setDeleted(true);
-
         sellerRepository.delete(seller);
         userRepository.save(user);
 
-        return new ApiResponseDTO("Seller rejected successfully");
+        return new ApiResponseDTO(msg("auth.seller_rejected"));
     }
 
     private void validateCustomerRegistration(RegisterRequestDTO dto) {
 
         if (userRepository.existsByEmailIgnoreCase(dto.getEmail())) {
-            throw new DuplicateResourceException("Email already exists");
+            throw new DuplicateResourceException("validation.email_exists");
         }
-
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
-            throw new BadRequestException("Passwords do not match");
+            throw new BadRequestException("validation.passwords_do_not_match");
         }
     }
 
     private void validateSellerRegistration(SellerRegisterRequestDTO dto) {
-
         if (userRepository.existsByEmailIgnoreCase(dto.getEmail())) {
-            throw new DuplicateResourceException("Email already exists");
+            throw new DuplicateResourceException("validation.email_exists");
         }
-
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
-            throw new BadRequestException("Passwords do not match");
+            throw new BadRequestException("validation.passwords_do_not_match");
         }
-
         if (sellerRepository.existsByGstIgnoreCase(dto.getGst())) {
-            throw new DuplicateResourceException("GST already registered");
+            throw new DuplicateResourceException("validation.gst_exists");
+        }
+        if (sellerRepository.existsByCompanyNameIgnoreCase(dto.getCompanyName())) {
+            throw new DuplicateResourceException("validation.company_name_exists");
         }
     }
 
@@ -210,7 +205,7 @@ public class AuthServiceImpl implements AuthService {
 
             CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
             User entity = userRepository.findById(user.getUserId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("auth.user_not_found"));
             entity.setInvalidAttemptCount(0);
             userRepository.save(entity);
 
@@ -230,9 +225,12 @@ public class AuthServiceImpl implements AuthService {
                     refreshTokenValue,
                     user.getAuthorities().stream().toList(),
                     user.getUsername(),
-                    "Login Successfull!");
+                    msg("auth.login_success"));
         } catch (BadCredentialsException e) {
             userRepository.findByEmailAndIsDeletedFalse(dto.getEmail()).ifPresent(user -> {
+                if (isProtectedAdmin(user)) {
+                    return;
+                }
                 int newCount = (user.getInvalidAttemptCount() == null ? 0 : user.getInvalidAttemptCount()) + 1;
                 user.setInvalidAttemptCount(newCount);
                 if (newCount >= MAX_FAILED_ATTEMPTS) {
@@ -246,35 +244,45 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public ApiResponseDTO logout(String refreshTokenValue) {
-        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
-            throw new ApiException("Refresh token is required", HttpStatus.UNAUTHORIZED);
+    public ApiResponseDTO logout(String accessTokenValue, String refreshTokenValue) {
+        boolean accessTokenHandled = false;
+        boolean refreshTokenHandled = false;
+
+        if (accessTokenValue != null && !accessTokenValue.isBlank()) {
+            if (jwtUtil.isTokenValid(accessTokenValue)) {
+                Claims claims = jwtUtil.extractAllClaims(accessTokenValue);
+                tokenBlacklist.add(claims.getId(), claims.getExpiration().getTime());
+                accessTokenHandled = true;
+            }
         }
-        if (!jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
-            throw new ApiException("Invalid or expired refresh token", HttpStatus.UNAUTHORIZED);
+
+        if (refreshTokenValue != null && !refreshTokenValue.isBlank()) {
+            if (jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
+                String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
+                if (refreshId != null) {
+                    refreshTokenRepository.findByTokenIdAndRevokedFalse(refreshId).ifPresent(storedToken -> {
+                        storedToken.setRevoked(true);
+                        refreshTokenRepository.save(storedToken);
+                    });
+                    refreshTokenHandled = true;
+                }
+            }
         }
 
-        String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
-        if (refreshId == null) {
-            throw new ApiException("Invalid refresh token", HttpStatus.UNAUTHORIZED);
+        if (!accessTokenHandled && !refreshTokenHandled) {
+            throw new ApiException("auth.token_required", HttpStatus.UNAUTHORIZED);
         }
 
-        RefreshToken storedToken = refreshTokenRepository.findByTokenIdAndRevokedFalse(refreshId)
-                .orElseThrow(() -> new ApiException("Refresh token not found or already revoked", HttpStatus.UNAUTHORIZED));
-
-        storedToken.setRevoked(true);
-        refreshTokenRepository.save(storedToken);
-
-        return new ApiResponseDTO("Logged out successfully");
+        return new ApiResponseDTO(msg("auth.logout_success"));
     }
 
     @Override
     public LoginResponseDTO refreshAccessToken(String refreshTokenValue) {
         if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
-            throw new ApiException("Refresh token is required", HttpStatus.UNAUTHORIZED);
+            throw new ApiException("auth.token_required", HttpStatus.UNAUTHORIZED);
         }
         if (!jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
-            throw new ApiException("Invalid or expired refresh token", HttpStatus.UNAUTHORIZED);
+            throw new ApiException("auth.invalid_refresh_token", HttpStatus.UNAUTHORIZED);
         }
 
         Claims claims = jwtUtil.extractAllClaims(refreshTokenValue);
@@ -283,23 +291,23 @@ public class AuthServiceImpl implements AuthService {
         String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
 
         if (userId == null || email == null || refreshId == null) {
-            throw new ApiException("Invalid refresh token", HttpStatus.UNAUTHORIZED);
+            throw new ApiException("auth.invalid_refresh_token", HttpStatus.UNAUTHORIZED);
         }
 
         RefreshToken existingToken = refreshTokenRepository.findByTokenIdAndRevokedFalse(refreshId)
-                .orElseThrow(() -> new ApiException("Refresh token not found or already revoked", HttpStatus.UNAUTHORIZED));
+                .orElseThrow(() -> new ApiException("auth.refresh_token_revoked", HttpStatus.UNAUTHORIZED));
 
         if (existingToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             existingToken.setRevoked(true);
             refreshTokenRepository.save(existingToken);
-            throw new ApiException("Refresh token expired", HttpStatus.UNAUTHORIZED);
+            throw new ApiException("auth.refresh_token_expired", HttpStatus.UNAUTHORIZED);
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("auth.user_not_found"));
 
         if (!email.equalsIgnoreCase(user.getEmail())) {
-            throw new ApiException("Invalid refresh token", HttpStatus.UNAUTHORIZED);
+            throw new ApiException("auth.invalid_refresh_token", HttpStatus.UNAUTHORIZED);
         }
 
         existingToken.setRevoked(true);
@@ -322,16 +330,16 @@ public class AuthServiceImpl implements AuthService {
                 newRefreshTokenValue,
                 userDetails.getAuthorities().stream().toList(),
                 user.getEmail(),
-                "Token refreshed successfully");
+                msg("auth.refresh_success"));
     }
 
     @Override
     public ApiResponseDTO requestPasswordReset(ForgotPasswordRequestDTO dto) {
         User user = userRepository.findByEmailIgnoreCase(dto.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("auth.user_not_found"));
 
         if (!user.isActive()) {
-            throw new BadRequestException("Account is not activated");
+            throw new BadRequestException("validation.account_not_activated");
         }
 
         long pwdUpdatedAtMillis = user.getPasswordUpdateDate() == null
@@ -341,18 +349,18 @@ public class AuthServiceImpl implements AuthService {
         String token = jwtUtil.generatePasswordResetToken(user.getId(), user.getEmail(), pwdUpdatedAtMillis);
         emailService.sendPasswordResetEmail(user.getEmail(), token);
 
-        return new ApiResponseDTO("Password reset link has been sent to your email");
+        return new ApiResponseDTO(msg("auth.password_reset_sent"));
     }
 
     @Override
     public ApiResponseDTO resetPassword(ResetPasswordRequestDTO dto) {
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
-            throw new BadRequestException("Passwords do not match");
+            throw new BadRequestException("validation.passwords_do_not_match");
         }
 
         String token = dto.getToken();
         if (!jwtUtil.isPasswordResetTokenValid(token)) {
-            throw new InvalidTokenException("Invalid or expired reset token");
+            throw new InvalidTokenException("validation.invalid_reset_token");
         }
 
         Claims claims = jwtUtil.extractAllClaims(token);
@@ -360,17 +368,17 @@ public class AuthServiceImpl implements AuthService {
         String email = claims.getSubject();
         Long tokenPwdUpdatedAt = claims.get("pwdUpdatedAt", Long.class);
         if (userId == null || email == null || tokenPwdUpdatedAt == null) {
-            throw new InvalidTokenException("Invalid reset token");
+            throw new InvalidTokenException("validation.invalid_reset_token");
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("auth.user_not_found"));
 
         if (!email.equalsIgnoreCase(user.getEmail())) {
-            throw new InvalidTokenException("Invalid reset token");
+            throw new InvalidTokenException("validation.invalid_reset_token");
         }
         if (!user.isActive()) {
-            throw new BadRequestException("Account is not activated");
+            throw new BadRequestException("validation.account_not_activated");
         }
 
         long currentPwdUpdatedAtMillis = user.getPasswordUpdateDate() == null
@@ -378,7 +386,7 @@ public class AuthServiceImpl implements AuthService {
                 : user.getPasswordUpdateDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
         if (currentPwdUpdatedAtMillis != tokenPwdUpdatedAt.longValue()) {
-            throw new InvalidTokenException("Reset token already used or invalid");
+            throw new InvalidTokenException("validation.reset_token_used");
         }
 
         user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
@@ -386,7 +394,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         emailService.sendPasswordChangedEmail(user.getEmail());
-        return new ApiResponseDTO("Password successfully updated");
+        return new ApiResponseDTO(msg("auth.password_updated"));
     }
 
     private User createUser(RegisterRequestDTO dto) {
@@ -431,7 +439,7 @@ public class AuthServiceImpl implements AuthService {
     private void assignRole(User user, RoleEnums roleEnum) {
 
         Role role = roleRepository.findByAuthority(roleEnum)
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("error.role_not_found"));
 
         UserRole userRole = new UserRole(
                 new UserRoleId(user.getId(), role.getId()),
@@ -494,5 +502,14 @@ public class AuthServiceImpl implements AuthService {
         activationTokenRepository.save(token);
 
         emailService.sendActivationEmail(user.getEmail(), tokenValue);
+    }
+
+    private boolean isProtectedAdmin(User user) {
+        return user != null && PROTECTED_ADMIN_EMAIL.equalsIgnoreCase(user.getEmail());
+    }
+
+    private String msg(String key) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return messageSource.getMessage(key, null, key, locale);
     }
 }

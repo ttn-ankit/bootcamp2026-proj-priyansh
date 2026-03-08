@@ -7,5 +7,6 @@ import com.example.ecommerceproject.entity.Seller;
 
 @Repository
 public interface SellerRepository extends JpaRepository<Seller, Long>{
-    boolean existsByGstIgnoreCase(String email);
+    boolean existsByGstIgnoreCase(String gst);
+    boolean existsByCompanyNameIgnoreCase(String companyName);
 }

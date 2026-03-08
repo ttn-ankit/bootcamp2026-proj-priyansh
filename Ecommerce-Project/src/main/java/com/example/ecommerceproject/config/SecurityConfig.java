@@ -31,8 +31,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/api/auth/register/**", "/api/auth/activate", "/api/auth/resend-activation", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/refresh").permitAll()
-                        .requestMatchers("/api/auth/logout").authenticated()
+                        .requestMatchers("/api/auth/login", "/api/auth/register/**", "/api/auth/activate", "/api/auth/resend-activation", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/refresh", "/api/auth/logout").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/seller/**").hasRole("SELLER")
                         .requestMatchers("/api/customer/**").hasRole("CUSTOMER")

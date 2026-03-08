@@ -26,7 +26,7 @@ public class RegisterRequestDTO {
 
     @Schema(example = "Password@123", description = "User password")
     @NotBlank
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,15}$", message = "Password must be 8-15 chars with upper, lower, number & special char")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,25}$", message = "Password must be 8-25 chars with at least one lower, upper, digit and special char")
     String password;
 
 

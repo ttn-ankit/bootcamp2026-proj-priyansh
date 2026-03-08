@@ -9,6 +9,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.example.ecommerceproject.config.TokenBlacklist;
 import com.example.ecommerceproject.service.impl.CustomUserDetailsServiceImpl;
 import com.example.ecommerceproject.util.JwtUtil;
 
@@ -24,6 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsServiceImpl userDetailsService;
+    private final TokenBlacklist tokenBlacklist;
 
     @Override
     protected void doFilterInternal(
@@ -40,8 +42,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
 
             token = authHeader.substring(7);
-            
             try {
+                String jti = jwtUtil.extractJti(token);
+                if (tokenBlacklist.contains(jti)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
                 email = jwtUtil.extractEmail(token);
             } catch (Exception e) {
                 filterChain.doFilter(request, response);

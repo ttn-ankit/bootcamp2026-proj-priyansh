@@ -45,7 +45,7 @@ public class AuthController {
 
     @Operation(summary = "Resend Activation Link")
     @PostMapping("/resend-activation")
-    public ResponseEntity<ApiResponseDTO> resendActivation(@RequestBody String email) {
+    public ResponseEntity<ApiResponseDTO> resendActivation(@RequestParam("email") String email) {
         return ResponseEntity.ok(authService.resendActivationLink(email));
     }
 
@@ -70,8 +70,15 @@ public class AuthController {
 
     @Operation(summary = "Logout User")
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponseDTO> logout(@RequestParam("refreshToken") String refreshToken) {
-        return ResponseEntity.ok(authService.logout(refreshToken));
+    public ResponseEntity<ApiResponseDTO> logout(
+            jakarta.servlet.http.HttpServletRequest request,
+            @RequestParam(value = "refreshToken", required = false) String refreshToken) {
+        String accessToken = null;
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            accessToken = authHeader.substring(7);
+        }
+        return ResponseEntity.ok(authService.logout(accessToken, refreshToken));
     }
 
     @Operation(summary = "Request password reset link")
