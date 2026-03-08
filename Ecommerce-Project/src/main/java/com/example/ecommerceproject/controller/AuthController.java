@@ -23,8 +23,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import jakarta.servlet.http.HttpServletRequest;
-
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -64,15 +62,16 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    @Operation(summary = "Refresh access token")
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponseDTO> refresh(@RequestParam("refreshToken") String refreshToken) {
+        return ResponseEntity.ok(authService.refreshAccessToken(refreshToken));
+    }
+
     @Operation(summary = "Logout User")
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponseDTO> logout(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        String token = null;
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7);
-        }
-        return ResponseEntity.ok(authService.logout(token));
+    public ResponseEntity<ApiResponseDTO> logout(@RequestParam("refreshToken") String refreshToken) {
+        return ResponseEntity.ok(authService.logout(refreshToken));
     }
 
     @Operation(summary = "Request password reset link")

@@ -18,12 +18,16 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtUtil {
 
-        private static final long ACCESS_TOKEN_VALIDITY = 86400000;
+        private static final long ACCESS_TOKEN_VALIDITY = 15 * 60 * 1000L; // 15 minutes
+        private static final long REFRESH_TOKEN_VALIDITY = 24 * 60 * 60 * 1000L; // 1 day
         private static final long PASSWORD_RESET_TOKEN_VALIDITY = 3600000;
         private static final int HMAC_KEY_MIN_BYTES = 32;
         private static final String CLAIM_PURPOSE = "purpose";
+        private static final String PURPOSE_ACCESS = "access";
+        private static final String PURPOSE_REFRESH = "refresh";
         private static final String PURPOSE_PASSWORD_RESET = "password_reset";
         private static final String CLAIM_PASSWORD_UPDATED_AT = "pwdUpdatedAt";
+        private static final String CLAIM_REFRESH_ID = "refreshId";
 
         private final SecretKey key;
 
@@ -49,9 +53,24 @@ public class JwtUtil {
                                 .setSubject(email)
                                 .claim("userId", userId)
                                 .claim("roles", roleNames)
+                                .claim(CLAIM_PURPOSE, PURPOSE_ACCESS)
                                 .setIssuedAt(new Date())
                                 .setExpiration(
                                                 new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY))
+                                .signWith(key)
+                                .compact();
+        }
+
+        public String generateRefreshToken(Long userId, String email, String refreshTokenId) {
+                return Jwts.builder()
+                                .setId(UUID.randomUUID().toString())
+                                .setSubject(email)
+                                .claim("userId", userId)
+                                .claim(CLAIM_PURPOSE, PURPOSE_REFRESH)
+                                .claim(CLAIM_REFRESH_ID, refreshTokenId)
+                                .setIssuedAt(new Date())
+                                .setExpiration(
+                                                new Date(System.currentTimeMillis() + REFRESH_TOKEN_VALIDITY))
                                 .signWith(key)
                                 .compact();
         }
@@ -82,12 +101,29 @@ public class JwtUtil {
                 }
         }
 
+        public boolean isRefreshTokenValid(String token) {
+                try {
+                        Claims claims = extractAllClaims(token);
+                        String purpose = claims.get(CLAIM_PURPOSE, String.class);
+                        if (!PURPOSE_REFRESH.equals(purpose)) {
+                                return false;
+                        }
+                        return claims.getExpiration().after(new Date());
+                } catch (Exception e) {
+                        return false;
+                }
+        }
+
         public String extractJti(String token) {
                 return extractAllClaims(token).getId();
         }
 
         public String extractEmail(String token) {
                 return extractAllClaims(token).getSubject();
+        }
+
+        public String extractRefreshId(String token) {
+                return extractAllClaims(token).get(CLAIM_REFRESH_ID, String.class);
         }
 
         public Claims extractAllClaims(String token) {
@@ -117,6 +153,11 @@ public class JwtUtil {
                 Claims claim = extractAllClaims(token);
                 String email = claim.getSubject();
                 Date expiration = claim.getExpiration();
+                String purpose = claim.get(CLAIM_PURPOSE, String.class);
+
+                if (purpose != null && !PURPOSE_ACCESS.equals(purpose)) {
+                        return false;
+                }
 
                 return email.equals(user.getUsername()) && expiration.after(new Date());
         }
@@ -124,6 +165,10 @@ public class JwtUtil {
         public boolean isTokenValid(String token) {
                 try {
                         Claims claims = extractAllClaims(token);
+                        String purpose = claims.get(CLAIM_PURPOSE, String.class);
+                        if (purpose != null && !PURPOSE_ACCESS.equals(purpose)) {
+                                return false;
+                        }
                         return claims.getExpiration().after(new Date());
                 } catch (Exception e) {
                         return false;

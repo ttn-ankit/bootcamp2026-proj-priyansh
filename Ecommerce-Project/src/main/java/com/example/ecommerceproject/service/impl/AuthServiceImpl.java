@@ -10,7 +10,6 @@ import com.example.ecommerceproject.dto.SellerRegisterRequestDTO;
 import com.example.ecommerceproject.entity.*;
 import com.example.ecommerceproject.enums.AddressLabelEnums;
 import com.example.ecommerceproject.enums.RoleEnums;
-import com.example.ecommerceproject.config.TokenBlacklist;
 import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.exception.BadRequestException;
 import com.example.ecommerceproject.exception.DuplicateResourceException;
@@ -55,7 +54,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
-    private final TokenBlacklist tokenBlacklist;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Override
     public ApiResponseDTO register(RegisterRequestDTO dto) {
@@ -215,9 +214,20 @@ public class AuthServiceImpl implements AuthService {
             entity.setInvalidAttemptCount(0);
             userRepository.save(entity);
 
-            String token = jwtUtil.generateToken(user.getUserId(), user.getUsername(), user.getAuthorities());
+            String accessToken = jwtUtil.generateToken(user.getUserId(), user.getUsername(), user.getAuthorities());
+
+            RefreshToken refreshToken = new RefreshToken();
+            refreshToken.setUser(entity);
+            String refreshId = UUID.randomUUID().toString();
+            refreshToken.setTokenId(refreshId);
+            refreshToken.setExpiryDate(LocalDateTime.now().plusDays(1));
+            refreshTokenRepository.save(refreshToken);
+
+            String refreshTokenValue = jwtUtil.generateRefreshToken(user.getUserId(), user.getUsername(), refreshId);
+
             return new LoginResponseDTO(
-                    token,
+                    accessToken,
+                    refreshTokenValue,
                     user.getAuthorities().stream().toList(),
                     user.getUsername(),
                     "Login Successfull!");
@@ -236,16 +246,83 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public ApiResponseDTO logout(String token) {
-        if (token == null || token.isBlank()) {
-            throw new ApiException("Access token is required", HttpStatus.UNAUTHORIZED);
+    public ApiResponseDTO logout(String refreshTokenValue) {
+        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
+            throw new ApiException("Refresh token is required", HttpStatus.UNAUTHORIZED);
         }
-        if (!jwtUtil.isTokenValid(token)) {
-            throw new ApiException("Invalid or expired access token", HttpStatus.UNAUTHORIZED);
+        if (!jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
+            throw new ApiException("Invalid or expired refresh token", HttpStatus.UNAUTHORIZED);
         }
-        Claims claims = jwtUtil.extractAllClaims(token);
-        tokenBlacklist.add(claims.getId(), claims.getExpiration().getTime());
+
+        String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
+        if (refreshId == null) {
+            throw new ApiException("Invalid refresh token", HttpStatus.UNAUTHORIZED);
+        }
+
+        RefreshToken storedToken = refreshTokenRepository.findByTokenIdAndRevokedFalse(refreshId)
+                .orElseThrow(() -> new ApiException("Refresh token not found or already revoked", HttpStatus.UNAUTHORIZED));
+
+        storedToken.setRevoked(true);
+        refreshTokenRepository.save(storedToken);
+
         return new ApiResponseDTO("Logged out successfully");
+    }
+
+    @Override
+    public LoginResponseDTO refreshAccessToken(String refreshTokenValue) {
+        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
+            throw new ApiException("Refresh token is required", HttpStatus.UNAUTHORIZED);
+        }
+        if (!jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
+            throw new ApiException("Invalid or expired refresh token", HttpStatus.UNAUTHORIZED);
+        }
+
+        Claims claims = jwtUtil.extractAllClaims(refreshTokenValue);
+        Long userId = claims.get("userId", Long.class);
+        String email = claims.getSubject();
+        String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
+
+        if (userId == null || email == null || refreshId == null) {
+            throw new ApiException("Invalid refresh token", HttpStatus.UNAUTHORIZED);
+        }
+
+        RefreshToken existingToken = refreshTokenRepository.findByTokenIdAndRevokedFalse(refreshId)
+                .orElseThrow(() -> new ApiException("Refresh token not found or already revoked", HttpStatus.UNAUTHORIZED));
+
+        if (existingToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            existingToken.setRevoked(true);
+            refreshTokenRepository.save(existingToken);
+            throw new ApiException("Refresh token expired", HttpStatus.UNAUTHORIZED);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!email.equalsIgnoreCase(user.getEmail())) {
+            throw new ApiException("Invalid refresh token", HttpStatus.UNAUTHORIZED);
+        }
+
+        existingToken.setRevoked(true);
+        refreshTokenRepository.save(existingToken);
+
+        RefreshToken newRefreshToken = new RefreshToken();
+        newRefreshToken.setUser(user);
+        String newRefreshId = UUID.randomUUID().toString();
+        newRefreshToken.setTokenId(newRefreshId);
+        newRefreshToken.setExpiryDate(LocalDateTime.now().plusDays(1));
+        refreshTokenRepository.save(newRefreshToken);
+
+        String newRefreshTokenValue = jwtUtil.generateRefreshToken(user.getId(), user.getEmail(), newRefreshId);
+
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String newAccessToken = jwtUtil.generateToken(user.getId(), user.getEmail(), userDetails.getAuthorities());
+
+        return new LoginResponseDTO(
+                newAccessToken,
+                newRefreshTokenValue,
+                userDetails.getAuthorities().stream().toList(),
+                user.getEmail(),
+                "Token refreshed successfully");
     }
 
     @Override
