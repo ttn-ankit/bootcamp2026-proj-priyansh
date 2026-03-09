@@ -1,5 +1,7 @@
 package com.example.ecommerceproject.service.impl;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -10,12 +12,14 @@ import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Service
 @RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE)
 public class CustomUserDetailsServiceImpl implements UserDetailsService {
 
-    private final UserRepository userRepository;
+    final UserRepository userRepository;
 
     @Override
     public UserDetails loadUserByUsername(String email)

@@ -1,15 +1,20 @@
 package com.example.ecommerceproject.config;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import lombok.experimental.FieldDefaults;
+
 @Component
+@FieldDefaults(level = PRIVATE)
 public class TokenBlacklist {
 
-    private final Map<String, Long> blacklist = new ConcurrentHashMap<>();
+    final Map<String, Long> blacklist = new ConcurrentHashMap<>();
 
     public void add(String jti, long expiresAtMillis) {
         blacklist.put(jti, expiresAtMillis);

@@ -1,5 +1,7 @@
 package com.example.ecommerceproject.entity;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -14,6 +16,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.FieldDefaults;
 
 @Entity
 @Getter
@@ -21,6 +24,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name="activation_token")
+@FieldDefaults(level = PRIVATE)
 public class ActivationToken {
 
     @Id

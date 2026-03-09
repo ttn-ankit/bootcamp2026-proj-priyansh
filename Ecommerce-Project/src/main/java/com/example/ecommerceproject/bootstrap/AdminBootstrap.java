@@ -1,5 +1,7 @@
 package com.example.ecommerceproject.bootstrap;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import java.time.LocalDateTime;
 
 import org.springframework.boot.CommandLineRunner;
@@ -17,15 +19,17 @@ import com.example.ecommerceproject.repository.UserRepository;
 import com.example.ecommerceproject.repository.UserRoleRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Component
 @RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE)
 public class AdminBootstrap implements CommandLineRunner {
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final UserRoleRepository userRoleRepository;
-    private final PasswordEncoder passwordEncoder;
+    final UserRepository userRepository;
+    final RoleRepository roleRepository;
+    final UserRoleRepository userRoleRepository;
+    final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {

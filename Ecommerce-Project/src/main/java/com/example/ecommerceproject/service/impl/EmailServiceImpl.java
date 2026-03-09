@@ -1,5 +1,7 @@
 package com.example.ecommerceproject.service.impl;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -7,11 +9,14 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import com.example.ecommerceproject.service.EmailService;
 
+import lombok.experimental.FieldDefaults;
+
 @Service
+@FieldDefaults(level = PRIVATE)
 public class EmailServiceImpl implements EmailService {
 
-    private final String from;
-    private final JavaMailSender mailSender;
+    final String from;
+    final JavaMailSender mailSender;
 
     public EmailServiceImpl(
             JavaMailSender mailSender,

@@ -19,16 +19,20 @@ import com.example.ecommerceproject.util.JwtUtil;
 import com.example.ecommerceproject.util.MessageService;
 import com.example.ecommerceproject.constants.MessageKeys;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import io.jsonwebtoken.Claims;
+
+import static lombok.AccessLevel.PRIVATE;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -37,6 +41,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@FieldDefaults(level = PRIVATE)
 public class AuthServiceImpl implements AuthService {
 
     private static final int MAX_FAILED_ATTEMPTS = 3;
@@ -90,6 +95,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional(noRollbackFor = ApiException.class)
     public ApiResponseDTO activateAccount(String tokenValue) {
 
         ActivationToken token = activationTokenRepository
@@ -481,7 +487,7 @@ public class AuthServiceImpl implements AuthService {
 
         token.setToken(tokenValue);
         token.setUser(user);
-        token.setExpiryDate(LocalDateTime.now().plusHours(3));
+        token.setExpiryDate(LocalDateTime.now().plusSeconds(50));
         token.setUsed(false);
 
         activationTokenRepository.save(token);

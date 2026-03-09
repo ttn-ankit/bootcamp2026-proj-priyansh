@@ -1,5 +1,7 @@
 package com.example.ecommerceproject.config;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,13 +17,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import com.example.ecommerceproject.filter.JwtAuthenticationFilter;
 
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE)
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtFilter;
+    final JwtAuthenticationFilter jwtFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) {

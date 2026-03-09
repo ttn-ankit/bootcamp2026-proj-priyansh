@@ -1,5 +1,7 @@
 package com.example.ecommerceproject.util;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Date;
@@ -14,22 +16,23 @@ import org.springframework.stereotype.Component;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.experimental.FieldDefaults;
 
 @Component
+@FieldDefaults(level = PRIVATE)
 public class JwtUtil {
 
-        private static final long ACCESS_TOKEN_VALIDITY = 15 * 60 * 1000L; // 15 minutes
-        private static final long REFRESH_TOKEN_VALIDITY = 24 * 60 * 60 * 1000L; // 1 day
-        private static final long PASSWORD_RESET_TOKEN_VALIDITY = 3600000;
-        private static final int HMAC_KEY_MIN_BYTES = 32;
-        private static final String CLAIM_PURPOSE = "purpose";
-        private static final String PURPOSE_ACCESS = "access";
-        private static final String PURPOSE_REFRESH = "refresh";
-        private static final String PURPOSE_PASSWORD_RESET = "password_reset";
-        private static final String CLAIM_PASSWORD_UPDATED_AT = "pwdUpdatedAt";
-        private static final String CLAIM_REFRESH_ID = "refreshId";
-
-        private final SecretKey key;
+        static final long ACCESS_TOKEN_VALIDITY = 15 * 60 * 1000L; // 15 minutes
+        static final long REFRESH_TOKEN_VALIDITY = 24 * 60 * 60 * 1000L; // 1 day
+        static final long PASSWORD_RESET_TOKEN_VALIDITY = 3600000;
+        static final int HMAC_KEY_MIN_BYTES = 32;
+        static final String CLAIM_PURPOSE = "purpose";
+        static final String PURPOSE_ACCESS = "access";
+        static final String PURPOSE_REFRESH = "refresh";
+        static final String PURPOSE_PASSWORD_RESET = "password_reset";
+        static final String CLAIM_PASSWORD_UPDATED_AT = "pwdUpdatedAt";
+        static final String CLAIM_REFRESH_ID = "refreshId";
+        final SecretKey key;
 
         public JwtUtil(@Value("${jwt.secret.key}") String secretKey) {
                 byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);

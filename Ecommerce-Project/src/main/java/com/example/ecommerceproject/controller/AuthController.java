@@ -17,6 +17,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+
+import static lombok.AccessLevel.PRIVATE;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,9 +30,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 @Tag(name = "Authentication APIs", description = "User registration and activation")
+@FieldDefaults(level = PRIVATE)
 public class AuthController {
 
-    private final AuthService authService;
+    final AuthService authService;
 
     @Operation(summary = "Regsiter new customer")
     @PostMapping("/register/customer")
