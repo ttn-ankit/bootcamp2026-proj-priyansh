@@ -1,5 +1,7 @@
 package com.example.ecommerceproject.filter;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import java.io.IOException;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,14 +20,16 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Component
 @RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE)
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtUtil jwtUtil;
-    private final CustomUserDetailsServiceImpl userDetailsService;
-    private final TokenBlacklist tokenBlacklist;
+    final JwtUtil jwtUtil;
+    final CustomUserDetailsServiceImpl userDetailsService;
+    final TokenBlacklist tokenBlacklist;
 
     @Override
     protected void doFilterInternal(

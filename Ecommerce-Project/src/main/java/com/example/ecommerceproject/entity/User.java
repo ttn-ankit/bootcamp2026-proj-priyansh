@@ -57,7 +57,7 @@ public class User extends Auditable {
     @Column(name = "is_locked")
     boolean isLocked;
 
-    @Column(name = "invalid_attemp_count")
+    @Column(name = "invalid_attempt_count")
     Integer invalidAttemptCount = 0;
 
     @Column(name = "password_update_date")

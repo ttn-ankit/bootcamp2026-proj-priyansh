@@ -19,6 +19,7 @@ import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.util.MessageService;
 import com.example.ecommerceproject.constants.MessageKeys;
 
+import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 
 @RestControllerAdvice
@@ -79,5 +80,26 @@ public class GlobalExceptionHandler {
         response.put("message", message);
         response.put("status", 500);
         return ResponseEntity.internalServerError().body(response);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ValidationErrorResponseDTO> handleConstraintViolationException(ConstraintViolationException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String message = messageSource.getMessage("validation.failed", null, locale);
+        List<ValidationErrorResponseDTO.FieldErrorDTO> errors = ex.getConstraintViolations()
+            .stream()
+            .map(violation -> {
+                String fieldPath = violation.getPropertyPath().toString();
+                return new ValidationErrorResponseDTO.FieldErrorDTO(fieldPath, violation.getMessage());
+            })
+            .collect(Collectors.toList());
+            
+        ValidationErrorResponseDTO response = new ValidationErrorResponseDTO(
+                LocalDateTime.now(),
+                message,
+                errors,
+                HttpStatus.BAD_REQUEST.value());
+                
+        return ResponseEntity.badRequest().body(response);
     }
 }

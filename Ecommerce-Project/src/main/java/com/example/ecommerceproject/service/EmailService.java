@@ -6,4 +6,6 @@ public interface EmailService {
     void sendAccountLockedEmail(String email);
     void sendPasswordResetEmail(String toEmail, String token);
     void sendPasswordChangedEmail(String toEmail);
+    void sendAccountActivationEmail(String email);
+    void sendAccountDeactivationEmail(String email);
 }

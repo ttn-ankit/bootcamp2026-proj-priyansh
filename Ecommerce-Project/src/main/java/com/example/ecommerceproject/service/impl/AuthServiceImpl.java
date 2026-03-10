@@ -40,7 +40,6 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 @FieldDefaults(level = PRIVATE)
 public class AuthServiceImpl implements AuthService {
 
@@ -61,6 +60,7 @@ public class AuthServiceImpl implements AuthService {
     private final MessageService messageService;
 
     @Override
+    @Transactional
     public ApiResponseDTO register(RegisterRequestDTO dto) {
 
         validateCustomerRegistration(dto);
@@ -77,6 +77,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public ApiResponseDTO registerSeller(SellerRegisterRequestDTO dto) {
 
         validateSellerRegistration(dto);
@@ -118,6 +119,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public ApiResponseDTO resendActivationLink(String email) {
 
         User user = userRepository.findByEmailIgnoreCase(email)
@@ -134,6 +136,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public ApiResponseDTO approveSeller(Long sellerId) {
 
         Seller seller = sellerRepository.findById(sellerId)
@@ -149,6 +152,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public ApiResponseDTO rejectSeller(Long sellerId) {
 
         Seller seller = sellerRepository.findById(sellerId)
@@ -191,6 +195,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional(noRollbackFor = BadCredentialsException.class)
     public LoginResponseDTO login(LoginRequestDTO dto) {
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -237,6 +242,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public ApiResponseDTO logout(String accessTokenValue, String refreshTokenValue) {
         boolean accessTokenHandled = false;
         boolean refreshTokenHandled = false;
@@ -270,6 +276,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public LoginResponseDTO refreshAccessToken(String refreshTokenValue) {
         if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
             throw new ApiException(MessageKeys.AUTH_TOKEN_REQUIRED, 403);
@@ -327,6 +334,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ApiResponseDTO requestPasswordReset(ForgotPasswordRequestDTO dto) {
         User user = userRepository.findByEmailIgnoreCase(dto.getEmail())
                 .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 400));
@@ -346,6 +354,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public ApiResponseDTO resetPassword(ResetPasswordRequestDTO dto) {
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
             throw new ApiException(MessageKeys.VALIDATION_PASSWORDS_DO_NOT_MATCH, 400);
@@ -487,7 +496,7 @@ public class AuthServiceImpl implements AuthService {
 
         token.setToken(tokenValue);
         token.setUser(user);
-        token.setExpiryDate(LocalDateTime.now().plusSeconds(50));
+        token.setExpiryDate(LocalDateTime.now().plusHours(3));
         token.setUsed(false);
 
         activationTokenRepository.save(token);

@@ -135,4 +135,40 @@ public class EmailServiceImpl implements EmailService {
         mailSender.send(mailMessage);
     }
 
+    @Override
+    @Async
+    public void sendAccountActivationEmail(String toEmail) {
+        try {   
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject("Your Account Has Been Activated");
+            message.setText("Hello,\n\n" +
+                    "Good news! Your account has been successfully activated by an administrator. " +
+                    "You can now log in and access all features of the platform.\n\n" +
+                    "Regards,\n" +
+                    "The E-Commerce Team");
+            mailSender.send(message);
+        } catch (Exception e) {
+            System.err.println("Failed to send activation email: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Async
+    public void sendAccountDeactivationEmail(String toEmail) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject("Notice: Your Account Has Been Deactivated");
+            message.setText("Hello,\n\n" +
+                    "This is a notification that your account has been deactivated by an administrator. " +
+                    "If you believe this is an error, please contact support.\n\n" +
+                    "Regards,\n" +
+                    "The E-Commerce Team");
+            mailSender.send(message);
+        } catch (Exception e) {
+            System.err.println("Failed to send deactivation email: " + e.getMessage());
+        }
+    }
+
 }
