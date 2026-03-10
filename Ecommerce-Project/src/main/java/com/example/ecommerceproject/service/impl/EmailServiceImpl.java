@@ -1,0 +1,122 @@
+package com.example.ecommerceproject.service.impl;
+
+import static lombok.AccessLevel.PRIVATE;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import com.example.ecommerceproject.service.EmailService;
+import com.example.ecommerceproject.service.MessageService;
+import com.example.ecommerceproject.util.MessageKeys;
+
+import lombok.experimental.FieldDefaults;
+
+@Service
+@FieldDefaults(level = PRIVATE)
+public class EmailServiceImpl implements EmailService {
+
+    final String from;
+    final JavaMailSender mailSender;
+    final MessageService messageService;
+
+    public EmailServiceImpl(
+            JavaMailSender mailSender,
+            @Value("${spring.mail.username}") String from,
+            MessageService messageService) {
+        this.mailSender = mailSender;
+        this.from = from;
+        this.messageService = messageService;
+    }
+
+    @Override
+    @Async
+    public void sendActivationEmail(String toEmail, String token) {
+        String activationLink = "http://localhost:8080/api/auth/activate?token=" + token;
+
+        SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setFrom(from);
+        mailMessage.setTo(toEmail);
+        mailMessage.setSubject(messageService.get(MessageKeys.EMAIL_ACTIVATION_SUBJECT));
+        mailMessage.setText(messageService.get(MessageKeys.EMAIL_ACTIVATION_BODY, activationLink));
+        mailSender.send(mailMessage);
+    }
+
+    @Override
+    @Async
+    public void sendSellerRegistrationEmail(String email) {
+
+        SimpleMailMessage mail = new SimpleMailMessage();
+
+        mail.setTo(email);
+        mail.setSubject(messageService.get(MessageKeys.EMAIL_SELLER_REGISTRATION_SUBJECT));
+        mail.setText(messageService.get(MessageKeys.EMAIL_SELLER_REGISTRATION_BODY));
+
+        mailSender.send(mail);
+    }
+
+    @Override
+    @Async
+    public void sendAccountLockedEmail(String email) {
+        SimpleMailMessage mail = new SimpleMailMessage();
+        mail.setFrom(from);
+        mail.setTo(email);
+        mail.setSubject(messageService.get(MessageKeys.EMAIL_ACCOUNT_LOCKED_SUBJECT));
+        mail.setText(messageService.get(MessageKeys.EMAIL_ACCOUNT_LOCKED_BODY));
+        mailSender.send(mail);
+    }
+
+    @Override
+    @Async
+    public void sendPasswordResetEmail(String toEmail, String token) {
+        String resetLink = "http://localhost:8080/api/auth/reset-password?token=" + token;
+
+        SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setFrom(from);
+        mailMessage.setTo(toEmail);
+        mailMessage.setSubject(messageService.get(MessageKeys.EMAIL_PASSWORD_RESET_SUBJECT));
+        mailMessage.setText(messageService.get(MessageKeys.EMAIL_PASSWORD_RESET_BODY, resetLink));
+        mailSender.send(mailMessage);
+    }
+
+    @Override
+    @Async
+    public void sendPasswordChangedEmail(String toEmail) {
+        SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setFrom(from);
+        mailMessage.setTo(toEmail);
+        mailMessage.setSubject(messageService.get(MessageKeys.EMAIL_PASSWORD_CHANGED_SUBJECT));
+        mailMessage.setText(messageService.get(MessageKeys.EMAIL_PASSWORD_CHANGED_BODY));
+        mailSender.send(mailMessage);
+    }
+
+    @Override
+    @Async
+    public void sendAccountActivationEmail(String toEmail) {
+        try {   
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject(messageService.get(MessageKeys.EMAIL_ACCOUNT_ACTIVATED_SUBJECT));
+            message.setText(messageService.get(MessageKeys.EMAIL_ACCOUNT_ACTIVATED_BODY));
+            mailSender.send(message);
+        } catch (Exception e) {
+            System.err.println("Failed to send activation email: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Async
+    public void sendAccountDeactivationEmail(String toEmail) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject(messageService.get(MessageKeys.EMAIL_ACCOUNT_DEACTIVATED_SUBJECT));
+            message.setText(messageService.get(MessageKeys.EMAIL_ACCOUNT_DEACTIVATED_BODY));
+            mailSender.send(message);
+        } catch (Exception e) {
+            System.err.println("Failed to send deactivation email: " + e.getMessage());
+        }
+    }
+
+}
