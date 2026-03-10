@@ -8,11 +8,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import com.example.ecommerceproject.entity.User;
-<<<<<<< HEAD
 import com.example.ecommerceproject.exception.ApiException;
-=======
->>>>>>> bdb0356 (Refactored)
 import com.example.ecommerceproject.repository.UserRepository;
+import com.example.ecommerceproject.util.MessageKeys;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -30,11 +28,7 @@ public class CustomUserDetailsServiceImpl implements UserDetailsService {
 
         User user = userRepository.findWithRolesByEmailAndIsDeletedFalse(email)
                 .orElseThrow(() ->
-<<<<<<< HEAD
-                        new ApiException("User not found", 400));
-=======
-                        new UsernameNotFoundException("User not found"));
->>>>>>> bdb0356 (Refactored)
+                        new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 400));
 
         return new CustomUserDetails(user);
     }

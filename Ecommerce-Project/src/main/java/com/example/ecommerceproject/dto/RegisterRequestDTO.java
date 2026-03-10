@@ -1,19 +1,13 @@
 package com.example.ecommerceproject.dto;
 
 import static lombok.AccessLevel.PRIVATE;
-<<<<<<< HEAD
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-=======
 
-import com.example.ecommerceproject.enums.AddressLabelEnums;
+import com.example.ecommerceproject.enums.AddressType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
->>>>>>> bdb0356 (Refactored)
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -26,30 +20,25 @@ import lombok.experimental.FieldDefaults;
 public class RegisterRequestDTO {
 
     @Schema(example = "user@example.com", description = "User email address")
-    @NotBlank
-<<<<<<< HEAD
-    @Email(message = "Invalid Email")
-=======
+    @NotBlank(message = "{validation.email_required}")
     @Email(message = "{validation.email_invalid}")
->>>>>>> bdb0356 (Refactored)
     String email;
 
     @Schema(example = "Password@123", description = "User password")
-    @NotBlank
-<<<<<<< HEAD
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,25}$", message = "Password must be 8-25 chars with at least one lower, upper, digit and special char")
-=======
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,25}$", message = "{validation.password_strength}")
->>>>>>> bdb0356 (Refactored)
+    @NotBlank(message = "{validation.password_required}")
+    @Pattern(
+        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,25}$",
+        message = "{validation.password_strength}")
     String password;
 
 
     @Schema(example = "Password@123", description = "User confirmed password")
-    @NotBlank
+    @NotBlank(message = "{validation.confirm_password_required}")
     String confirmPassword;
 
     @Schema(example = "John")
-    @NotBlank
+    @NotBlank(message = "{validation.first_name_required}")
     @Size(max = 30)
     String firstName;
 
@@ -59,17 +48,13 @@ public class RegisterRequestDTO {
     String middleName;
 
     @Schema(example = "Doe")
-    @NotBlank
+    @NotBlank(message = "{validation.last_name_required}")
     @Size(max = 30)
     String lastName;
 
-    @Schema(example = "9876543210")
-    @NotBlank
-<<<<<<< HEAD
-    @Pattern(regexp="^[0-9]{10}$", message="Invalid phone number")
-    String phoneNumber;
-=======
     @Pattern(regexp="^[0-9]{10}$", message="{validation.phone_invalid}")
+    @NotBlank(message = "{validation.phone_invalid}")
+    @Pattern(regexp = "^[0-9]{10}$", message = "{validation.phone_invalid}")
     String phoneNumber;
 
     @Schema(
@@ -126,7 +111,5 @@ public class RegisterRequestDTO {
         requiredMode = Schema.RequiredMode.REQUIRED
     )
     @NotNull(message = "{validation.address_label_required}")
-    AddressLabelEnums label;
-
->>>>>>> bdb0356 (Refactored)
+    AddressType label;
 }

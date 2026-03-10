@@ -5,11 +5,8 @@ import static lombok.AccessLevel.PRIVATE;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +25,9 @@ import com.example.ecommerceproject.repository.AddressRepository;
 import com.example.ecommerceproject.repository.SellerRepository;
 import com.example.ecommerceproject.repository.UserRepository;
 import com.example.ecommerceproject.service.EmailService;
+import com.example.ecommerceproject.service.MessageService;
 import com.example.ecommerceproject.service.SellerService;
+import com.example.ecommerceproject.util.MessageKeys;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -46,7 +45,7 @@ public class SellerServiceImpl implements SellerService {
     final AddressRepository addressRepository;
     final PasswordEncoder passwordEncoder;
     final EmailService emailService;
-    final MessageSource messageSource;
+    final MessageService messageService;
 
     @Override
     @Transactional(readOnly = true)
@@ -95,14 +94,14 @@ public class SellerServiceImpl implements SellerService {
         userRepository.save(user);
         sellerRepository.save(seller);
 
-        return new ApiResponseDTO(msg("seller.profile_updated"));
+        return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_PROFILE_UPDATED));
     }
 
     @Override
     @Transactional
     public ApiResponseDTO updatePassword(Long userId, SellerPasswordUpdateRequestDTO dto) {
         if(!dto.getPassword().equals(dto.getConfirmPassword())){
-            throw new BadRequestException(msg("validation.password_do_not_match"));
+            throw new BadRequestException(messageService.get(MessageKeys.VALIDATION_PASSWORD_DO_NOT_MATCH));
         }
 
         Seller seller = getActiveSellerByUserId(userId);
@@ -113,7 +112,7 @@ public class SellerServiceImpl implements SellerService {
 
         emailService.sendPasswordChangedEmail(user.getEmail());
 
-        return new ApiResponseDTO(msg("seller.password_updated"));
+        return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_PASSWORD_UPDATED));
     }
 
     @Override
@@ -122,7 +121,7 @@ public class SellerServiceImpl implements SellerService {
         getActiveSellerByUserId(userId);
 
         Address address = addressRepository.findById(addressId)
-        .orElseThrow(() -> new ResourceNotFoundException(msg("error.address_not_found")));
+        .orElseThrow(() -> new ResourceNotFoundException(messageService.get(MessageKeys.ERROR_ADDRESS_NOT_FOUND)));
 
         address.setAddressLine(dto.getAddressLine());
         address.setCity(dto.getCity());
@@ -132,15 +131,15 @@ public class SellerServiceImpl implements SellerService {
 
         addressRepository.save(address);
 
-        return new ApiResponseDTO(msg("seller.address_updated"));
+        return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_ADDRESS_UPDATED));
     }
 
     private Seller getActiveSellerByUserId(Long userId) {
         Seller seller = sellerRepository.findByUser_Id(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(msg("error.seller_not_found")));
+                .orElseThrow(() -> new ResourceNotFoundException(messageService.get(MessageKeys.ERROR_SELLER_NOT_FOUND)));
 
         if (!seller.getUser().isActive()) {
-            throw new BadRequestException(msg("auth.account_not_activated"));
+            throw new BadRequestException(messageService.get(MessageKeys.AUTH_ACCOUNT_NOT_ACTIVATED));
         }
 
         return seller;
@@ -155,15 +154,6 @@ public class SellerServiceImpl implements SellerService {
             }
         }
         return null;
-    }
-
-    private String msg(String key) {
-        Locale locale = LocaleContextHolder.getLocale();
-        try {
-            return messageSource.getMessage(key, null, locale);
-        } catch (Exception e) {
-            return key; 
-        }
     }
 
 }

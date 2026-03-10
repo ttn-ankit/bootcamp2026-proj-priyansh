@@ -13,10 +13,10 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = PRIVATE)
 public class LoginRequestDTO {
 
-    @NotBlank
-    @Email
+    @NotBlank(message = "{validation.email_required}")
+    @Email(message = "{validation.email_invalid}")
     String email;
 
-    @NotBlank
+    @NotBlank(message = "{validation.password_required}")
     String password;
 }

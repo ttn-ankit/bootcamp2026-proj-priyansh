@@ -5,7 +5,6 @@ public final class MessageKeys {
     private MessageKeys() {
     }
 
-    // Authentication and authorization
     public static final String AUTH_INVALID_CREDENTIALS = "auth.invalid_credentials";
     public static final String AUTH_ACCOUNT_LOCKED = "auth.account_locked";
     public static final String AUTH_ACCOUNT_NOT_ACTIVATED = "auth.account_not_activated";
@@ -31,7 +30,6 @@ public final class MessageKeys {
     public static final String AUTH_ACCOUNT_ALREADY_ACTIVATED = "auth.account_already_activated";
     public static final String AUTH_USER_NOT_FOUND = "auth.user_not_found";
 
-    // Validation
     public static final String VALIDATION_FAILED = "validation.failed";
     public static final String VALIDATION_EMAIL_EXISTS = "validation.email_exists";
     public static final String VALIDATION_GST_EXISTS = "validation.gst_exists";
@@ -51,7 +49,6 @@ public final class MessageKeys {
     public static final String VALIDATION_USER_ALREADY_DELETED = "validation.user_already_deleted";
     public static final String VALIDATION_USER_ALREADY_DEACTIVATED = "validation.user_already_deactivated";
 
-    // Generic errors
     public static final String ERROR_INTERNAL_SERVER = "error.internal_server";
     public static final String ERROR_RESOURCE_NOT_FOUND = "error.resource_not_found";
     public static final String ERROR_SELLER_NOT_FOUND = "error.seller_not_found";
@@ -61,18 +58,15 @@ public final class MessageKeys {
     public static final String ERROR_CUSTOMER_NOT_FOUND = "error.customer_not_found";
     public static final String ERROR_USER_IS_DELETED = "error.user_is_deleted";
 
-    // Admin operations
     public static final String ADMIN_CUSTOMER_ACTIVATED = "admin.customer_activated";
     public static final String ADMIN_CUSTOMER_DEACTIVATED = "admin.customer_deactivated";
     public static final String ADMIN_SELLER_ACTIVATED = "admin.seller_activated";
     public static final String ADMIN_SELLER_DEACTIVATED = "admin.seller_deactivated";
 
-    // Seller operations
     public static final String SELLER_PROFILE_UPDATED = "seller.profile_updated";
     public static final String SELLER_PASSWORD_UPDATED = "seller.password_updated";
     public static final String SELLER_ADDRESS_UPDATED = "seller.address_updated";
 
-    // Email subjects
     public static final String EMAIL_ACTIVATION_SUBJECT = "email.activation.subject";
     public static final String EMAIL_SELLER_REGISTRATION_SUBJECT = "email.seller_registration.subject";
     public static final String EMAIL_ACCOUNT_LOCKED_SUBJECT = "email.account_locked.subject";
@@ -81,7 +75,6 @@ public final class MessageKeys {
     public static final String EMAIL_ACCOUNT_ACTIVATED_SUBJECT = "email.account_activated.subject";
     public static final String EMAIL_ACCOUNT_DEACTIVATED_SUBJECT = "email.account_deactivated.subject";
 
-    // Email bodies
     public static final String EMAIL_ACTIVATION_BODY = "email.activation.body";
     public static final String EMAIL_SELLER_REGISTRATION_BODY = "email.seller_registration.body";
     public static final String EMAIL_ACCOUNT_LOCKED_BODY = "email.account_locked.body";
@@ -90,4 +83,3 @@ public final class MessageKeys {
     public static final String EMAIL_ACCOUNT_ACTIVATED_BODY = "email.account_activated.body";
     public static final String EMAIL_ACCOUNT_DEACTIVATED_BODY = "email.account_deactivated.body";
 }
-

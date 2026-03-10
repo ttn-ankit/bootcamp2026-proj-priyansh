@@ -1,9 +1,6 @@
 package com.example.ecommerceproject.service.impl;
 
-<<<<<<< HEAD
 import com.example.ecommerceproject.dto.AddressDTO;
-=======
->>>>>>> bdb0356 (Refactored)
 import com.example.ecommerceproject.dto.ApiResponseDTO;
 import com.example.ecommerceproject.dto.ForgotPasswordRequestDTO;
 import com.example.ecommerceproject.dto.LoginRequestDTO;
@@ -12,30 +9,15 @@ import com.example.ecommerceproject.dto.RegisterRequestDTO;
 import com.example.ecommerceproject.dto.ResetPasswordRequestDTO;
 import com.example.ecommerceproject.dto.SellerRegisterRequestDTO;
 import com.example.ecommerceproject.entity.*;
-<<<<<<< HEAD
 import com.example.ecommerceproject.enums.RoleEnums;
 import com.example.ecommerceproject.exception.ApiException;
-=======
-import com.example.ecommerceproject.enums.AddressLabelEnums;
-import com.example.ecommerceproject.enums.RoleEnums;
-import com.example.ecommerceproject.exception.ApiException;
-import com.example.ecommerceproject.exception.BadRequestException;
-import com.example.ecommerceproject.exception.DuplicateResourceException;
-import com.example.ecommerceproject.exception.InvalidTokenException;
-import com.example.ecommerceproject.exception.ResourceNotFoundException;
->>>>>>> bdb0356 (Refactored)
 import com.example.ecommerceproject.config.TokenBlacklist;
 import com.example.ecommerceproject.repository.*;
 import com.example.ecommerceproject.service.AuthService;
 import com.example.ecommerceproject.service.EmailService;
 import com.example.ecommerceproject.util.JwtUtil;
-<<<<<<< HEAD
 import com.example.ecommerceproject.util.MessageService;
 import com.example.ecommerceproject.constants.MessageKeys;
-=======
-import com.example.ecommerceproject.util.MessageKeys;
-import com.example.ecommerceproject.service.MessageService;
->>>>>>> bdb0356 (Refactored)
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -44,10 +26,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-<<<<<<< HEAD
-=======
-import org.springframework.http.HttpStatus;
->>>>>>> bdb0356 (Refactored)
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,34 +36,13 @@ import static lombok.AccessLevel.PRIVATE;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-<<<<<<< HEAD
-=======
 import java.util.Locale;
->>>>>>> bdb0356 (Refactored)
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE)
 public class AuthServiceImpl implements AuthService {
-
-<<<<<<< HEAD
-    private static final int MAX_FAILED_ATTEMPTS = 3;
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final UserRoleRepository userRoleRepository;
-    private final CustomerRepository customerRepository;
-    private final SellerRepository sellerRepository;
-    private final AddressRepository addressRepository;
-    private final ActivationTokenRepository activationTokenRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final EmailService emailService;
-    private final AuthenticationManager authenticationManager;
-    private final JwtUtil jwtUtil;
-    private final RefreshTokenRepository refreshTokenRepository;
-    private final TokenBlacklist tokenBlacklist;
-    private final MessageService messageService;
-=======
     static final int MAX_FAILED_ATTEMPTS = 3;
     static final String PROTECTED_ADMIN_EMAIL = "admin@ecommerce.com";
 
@@ -103,7 +60,6 @@ public class AuthServiceImpl implements AuthService {
     final RefreshTokenRepository refreshTokenRepository;
     final TokenBlacklist tokenBlacklist;
     final MessageService messageService;
->>>>>>> bdb0356 (Refactored)
 
     @Override
     @Transactional
@@ -117,18 +73,9 @@ public class AuthServiceImpl implements AuthService {
 
         createCustomer(user, dto.getPhoneNumber());
 
-<<<<<<< HEAD
         createActivationToken(user);
 
         return new ApiResponseDTO(messageService.getMessage(MessageKeys.AUTH_REGISTRATION_SUCCESS));
-=======
-        saveAddress(user, dto.getAddressLine(), dto.getCity(), dto.getState(),
-                dto.getCountry(), dto.getZipCode(), dto.getLabel());
-
-        createActivationToken(user);
-
-        return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_REGISTRATION_SUCCESS));
->>>>>>> bdb0356 (Refactored)
     }
 
     @Override
@@ -143,7 +90,6 @@ public class AuthServiceImpl implements AuthService {
 
         createSeller(user, dto);
 
-<<<<<<< HEAD
         saveAddress(user, dto.getAddress());
 
         emailService.sendSellerRegistrationEmail(user.getEmail());
@@ -153,37 +99,17 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional(noRollbackFor = ApiException.class)
-=======
-        saveAddress(user, dto.getAddressLine(), dto.getCity(), dto.getState(),
-                dto.getCountry(), dto.getZipCode(), dto.getLabel());
-
-        emailService.sendSellerRegistrationEmail(user.getEmail());
-
-        return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_SELLER_REGISTRATION_SUCCESS));
-    }
-
-    @Override
-    @Transactional(noRollbackFor = InvalidTokenException.class)
->>>>>>> bdb0356 (Refactored)
     public ApiResponseDTO activateAccount(String tokenValue) {
 
         ActivationToken token = activationTokenRepository
                 .findByToken(tokenValue)
-<<<<<<< HEAD
                 .orElseThrow(() -> new ApiException(MessageKeys.AUTH_INVALID_ACTIVATION_TOKEN, 400));
-=======
-                .orElseThrow(() -> new InvalidTokenException(MessageKeys.AUTH_INVALID_ACTIVATION_TOKEN));
->>>>>>> bdb0356 (Refactored)
 
         if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
             User user = token.getUser();
             activationTokenRepository.delete(token);
             createActivationToken(user);
-<<<<<<< HEAD
             throw new ApiException(MessageKeys.AUTH_ACTIVATION_EXPIRED, 400);
-=======
-            throw new InvalidTokenException(MessageKeys.AUTH_ACTIVATION_EXPIRED);
->>>>>>> bdb0356 (Refactored)
         }
 
         User user = token.getUser();
@@ -191,11 +117,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
         activationTokenRepository.delete(token);
 
-<<<<<<< HEAD
         return new ApiResponseDTO(messageService.getMessage(MessageKeys.AUTH_ACTIVATION_SUCCESS));
-=======
-        return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_ACTIVATION_SUCCESS));
->>>>>>> bdb0356 (Refactored)
     }
 
     @Override
@@ -203,27 +125,16 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponseDTO resendActivationLink(String email) {
 
         User user = userRepository.findByEmailIgnoreCase(email)
-<<<<<<< HEAD
                 .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 400));
 
         if (user.isActive()) {
             throw new ApiException(MessageKeys.AUTH_ACCOUNT_ALREADY_ACTIVATED, 400);
-=======
-                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.AUTH_USER_NOT_FOUND));
-
-        if (user.isActive()) {
-            throw new BadRequestException(MessageKeys.AUTH_ACCOUNT_ALREADY_ACTIVATED);
->>>>>>> bdb0356 (Refactored)
         }
 
         activationTokenRepository.deleteByUser(user);
         createActivationToken(user);
 
-<<<<<<< HEAD
         return new ApiResponseDTO(messageService.getMessage(MessageKeys.AUTH_RESEND_ACTIVATION_SUCCESS));
-=======
-        return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_RESEND_ACTIVATION_SUCCESS));
->>>>>>> bdb0356 (Refactored)
     }
 
     @Override
@@ -231,11 +142,7 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponseDTO approveSeller(Long sellerId) {
 
         Seller seller = sellerRepository.findById(sellerId)
-<<<<<<< HEAD
                 .orElseThrow(() -> new ApiException(MessageKeys.ERROR_SELLER_NOT_FOUND, 400));
-=======
-                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_SELLER_NOT_FOUND));
->>>>>>> bdb0356 (Refactored)
 
         seller.setApproved(true);
         User user = seller.getUser();
@@ -243,11 +150,7 @@ public class AuthServiceImpl implements AuthService {
         sellerRepository.save(seller);
         userRepository.save(user);
 
-<<<<<<< HEAD
         return new ApiResponseDTO(messageService.getMessage(MessageKeys.AUTH_SELLER_APPROVED));
-=======
-        return new ApiResponseDTO(msg("auth.seller_approved"));
->>>>>>> bdb0356 (Refactored)
     }
 
     @Override
@@ -255,51 +158,31 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponseDTO rejectSeller(Long sellerId) {
 
         Seller seller = sellerRepository.findById(sellerId)
-<<<<<<< HEAD
                 .orElseThrow(() -> new ApiException(MessageKeys.ERROR_SELLER_NOT_FOUND, 400));
 
         User user = seller.getUser();
         if (isProtectedAdmin(user)) {
             throw new ApiException(MessageKeys.AUTH_ADMIN_PROTECTED, 400);
-=======
-                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_SELLER_NOT_FOUND));
-
-        User user = seller.getUser();
-        if (isProtectedAdmin(user)) {
-            throw new BadRequestException(MessageKeys.AUTH_ADMIN_PROTECTED);
->>>>>>> bdb0356 (Refactored)
         }
         user.setDeleted(true);
         sellerRepository.delete(seller);
         userRepository.save(user);
 
-<<<<<<< HEAD
         return new ApiResponseDTO(messageService.getMessage(MessageKeys.AUTH_SELLER_REJECTED));
-=======
-        return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_SELLER_REJECTED));
->>>>>>> bdb0356 (Refactored)
     }
 
     private void validateCustomerRegistration(RegisterRequestDTO dto) {
 
         if (userRepository.existsByEmailIgnoreCase(dto.getEmail())) {
-<<<<<<< HEAD
             throw new ApiException(MessageKeys.VALIDATION_EMAIL_EXISTS, 400);
         }
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
             throw new ApiException(MessageKeys.VALIDATION_PASSWORDS_DO_NOT_MATCH, 400);
-=======
-            throw new DuplicateResourceException(MessageKeys.VALIDATION_EMAIL_EXISTS);
-        }
-        if (!dto.getPassword().equals(dto.getConfirmPassword())) {
-            throw new BadRequestException(MessageKeys.VALIDATION_PASSWORDS_DO_NOT_MATCH);
->>>>>>> bdb0356 (Refactored)
         }
     }
 
     private void validateSellerRegistration(SellerRegisterRequestDTO dto) {
         if (userRepository.existsByEmailIgnoreCase(dto.getEmail())) {
-<<<<<<< HEAD
             throw new ApiException(MessageKeys.VALIDATION_EMAIL_EXISTS, 400);
         }
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
@@ -310,18 +193,6 @@ public class AuthServiceImpl implements AuthService {
         }
         if (sellerRepository.existsByCompanyNameIgnoreCase(dto.getCompanyName())) {
             throw new ApiException(MessageKeys.VALIDATION_COMPANY_NAME_EXISTS, 400);
-=======
-            throw new DuplicateResourceException(MessageKeys.VALIDATION_EMAIL_EXISTS);
-        }
-        if (!dto.getPassword().equals(dto.getConfirmPassword())) {
-            throw new BadRequestException(MessageKeys.VALIDATION_PASSWORDS_DO_NOT_MATCH);
-        }
-        if (sellerRepository.existsByGstIgnoreCase(dto.getGst())) {
-            throw new DuplicateResourceException(MessageKeys.VALIDATION_GST_EXISTS);
-        }
-        if (sellerRepository.existsByCompanyNameIgnoreCase(dto.getCompanyName())) {
-            throw new DuplicateResourceException(MessageKeys.VALIDATION_COMPANY_NAME_EXISTS);
->>>>>>> bdb0356 (Refactored)
         }
     }
 
@@ -334,11 +205,7 @@ public class AuthServiceImpl implements AuthService {
 
             CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
             User entity = userRepository.findById(user.getUserId())
-<<<<<<< HEAD
                     .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 400));
-=======
-                    .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.AUTH_USER_NOT_FOUND));
->>>>>>> bdb0356 (Refactored)
             entity.setInvalidAttemptCount(0);
             userRepository.save(entity);
 
@@ -358,11 +225,7 @@ public class AuthServiceImpl implements AuthService {
                     refreshTokenValue,
                     user.getAuthorities().stream().toList(),
                     user.getUsername(),
-<<<<<<< HEAD
                     messageService.getMessage(MessageKeys.AUTH_LOGIN_SUCCESS));
-=======
-                    messageService.get(MessageKeys.AUTH_LOGIN_SUCCESS));
->>>>>>> bdb0356 (Refactored)
         } catch (BadCredentialsException e) {
             userRepository.findByEmailAndIsDeletedFalse(dto.getEmail()).ifPresent(user -> {
                 if (isProtectedAdmin(user)) {
@@ -376,11 +239,7 @@ public class AuthServiceImpl implements AuthService {
                 }
                 userRepository.save(user);
             });
-<<<<<<< HEAD
             throw new ApiException(MessageKeys.AUTH_INVALID_CREDENTIALS, 401);
-=======
-            throw new BadCredentialsException(MessageKeys.AUTH_INVALID_CREDENTIALS);
->>>>>>> bdb0356 (Refactored)
         }
     }
 
@@ -412,34 +271,20 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (!accessTokenHandled && !refreshTokenHandled) {
-<<<<<<< HEAD
             throw new ApiException(MessageKeys.AUTH_TOKEN_REQUIRED, 403);
         }
 
         return new ApiResponseDTO(messageService.getMessage(MessageKeys.AUTH_LOGOUT_SUCCESS));
-=======
-            throw new ApiException(MessageKeys.AUTH_TOKEN_REQUIRED, HttpStatus.UNAUTHORIZED);
-        }
-
-        return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_LOGOUT_SUCCESS));
->>>>>>> bdb0356 (Refactored)
     }
 
     @Override
     @Transactional
     public LoginResponseDTO refreshAccessToken(String refreshTokenValue) {
         if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
-<<<<<<< HEAD
             throw new ApiException(MessageKeys.AUTH_TOKEN_REQUIRED, 403);
         }
         if (!jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
             throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 403);
-=======
-            throw new ApiException(MessageKeys.AUTH_TOKEN_REQUIRED, HttpStatus.UNAUTHORIZED);
-        }
-        if (!jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
-            throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED);
->>>>>>> bdb0356 (Refactored)
         }
 
         Claims claims = jwtUtil.extractAllClaims(refreshTokenValue);
@@ -448,24 +293,15 @@ public class AuthServiceImpl implements AuthService {
         String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
 
         if (userId == null || email == null || refreshId == null) {
-<<<<<<< HEAD
             throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 403);
         }
 
         RefreshToken existingToken = refreshTokenRepository.findByTokenIdAndRevokedFalse(refreshId)
                 .orElseThrow(() -> new ApiException(MessageKeys.AUTH_REFRESH_TOKEN_REVOKED, 403));
-=======
-            throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-
-        RefreshToken existingToken = refreshTokenRepository.findByTokenIdAndRevokedFalse(refreshId)
-                .orElseThrow(() -> new ApiException(MessageKeys.AUTH_REFRESH_TOKEN_REVOKED, HttpStatus.UNAUTHORIZED));
->>>>>>> bdb0356 (Refactored)
 
         if (existingToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             existingToken.setRevoked(true);
             refreshTokenRepository.save(existingToken);
-<<<<<<< HEAD
             throw new ApiException(MessageKeys.AUTH_REFRESH_TOKEN_EXPIRED, 403);
         }
 
@@ -474,16 +310,6 @@ public class AuthServiceImpl implements AuthService {
 
         if (!email.equalsIgnoreCase(user.getEmail())) {
             throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 403);
-=======
-            throw new ApiException(MessageKeys.AUTH_REFRESH_TOKEN_EXPIRED, HttpStatus.UNAUTHORIZED);
-        }
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.AUTH_USER_NOT_FOUND));
-
-        if (!email.equalsIgnoreCase(user.getEmail())) {
-            throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED);
->>>>>>> bdb0356 (Refactored)
         }
 
         existingToken.setRevoked(true);
@@ -506,28 +332,17 @@ public class AuthServiceImpl implements AuthService {
                 newRefreshTokenValue,
                 userDetails.getAuthorities().stream().toList(),
                 user.getEmail(),
-<<<<<<< HEAD
                 messageService.getMessage(MessageKeys.AUTH_REFRESH_SUCCESS));
-=======
-                messageService.get(MessageKeys.AUTH_REFRESH_SUCCESS));
->>>>>>> bdb0356 (Refactored)
     }
 
     @Override
     @Transactional(readOnly = true)
     public ApiResponseDTO requestPasswordReset(ForgotPasswordRequestDTO dto) {
         User user = userRepository.findByEmailIgnoreCase(dto.getEmail())
-<<<<<<< HEAD
                 .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 400));
 
         if (!user.isActive()) {
             throw new ApiException(MessageKeys.VALIDATION_ACCOUNT_NOT_ACTIVATED, 400);
-=======
-                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.AUTH_USER_NOT_FOUND));
-
-        if (!user.isActive()) {
-            throw new BadRequestException(MessageKeys.VALIDATION_ACCOUNT_NOT_ACTIVATED);
->>>>>>> bdb0356 (Refactored)
         }
 
         long pwdUpdatedAtMillis = user.getPasswordUpdateDate() == null
@@ -537,31 +352,19 @@ public class AuthServiceImpl implements AuthService {
         String token = jwtUtil.generatePasswordResetToken(user.getId(), user.getEmail(), pwdUpdatedAtMillis);
         emailService.sendPasswordResetEmail(user.getEmail(), token);
 
-<<<<<<< HEAD
         return new ApiResponseDTO(messageService.getMessage(MessageKeys.AUTH_PASSWORD_RESET_SENT));
-=======
-        return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_PASSWORD_RESET_SENT));
->>>>>>> bdb0356 (Refactored)
     }
 
     @Override
     @Transactional
     public ApiResponseDTO resetPassword(ResetPasswordRequestDTO dto) {
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
-<<<<<<< HEAD
             throw new ApiException(MessageKeys.VALIDATION_PASSWORDS_DO_NOT_MATCH, 400);
-=======
-            throw new BadRequestException(MessageKeys.VALIDATION_PASSWORDS_DO_NOT_MATCH);
->>>>>>> bdb0356 (Refactored)
         }
 
         String token = dto.getToken();
         if (!jwtUtil.isPasswordResetTokenValid(token)) {
-<<<<<<< HEAD
             throw new ApiException(MessageKeys.VALIDATION_INVALID_RESET_TOKEN, 400);
-=======
-            throw new InvalidTokenException(MessageKeys.VALIDATION_INVALID_RESET_TOKEN);
->>>>>>> bdb0356 (Refactored)
         }
 
         Claims claims = jwtUtil.extractAllClaims(token);
@@ -569,7 +372,6 @@ public class AuthServiceImpl implements AuthService {
         String email = claims.getSubject();
         Long tokenPwdUpdatedAt = claims.get("pwdUpdatedAt", Long.class);
         if (userId == null || email == null || tokenPwdUpdatedAt == null) {
-<<<<<<< HEAD
             throw new ApiException(MessageKeys.VALIDATION_INVALID_RESET_TOKEN, 400);
         }
 
@@ -581,19 +383,6 @@ public class AuthServiceImpl implements AuthService {
         }
         if (!user.isActive()) {
             throw new ApiException(MessageKeys.VALIDATION_ACCOUNT_NOT_ACTIVATED, 400);
-=======
-            throw new InvalidTokenException(MessageKeys.VALIDATION_INVALID_RESET_TOKEN);
-        }
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.AUTH_USER_NOT_FOUND));
-
-        if (!email.equalsIgnoreCase(user.getEmail())) {
-            throw new InvalidTokenException(MessageKeys.VALIDATION_INVALID_RESET_TOKEN);
-        }
-        if (!user.isActive()) {
-            throw new BadRequestException(MessageKeys.VALIDATION_ACCOUNT_NOT_ACTIVATED);
->>>>>>> bdb0356 (Refactored)
         }
 
         long currentPwdUpdatedAtMillis = user.getPasswordUpdateDate() == null
@@ -601,11 +390,7 @@ public class AuthServiceImpl implements AuthService {
                 : user.getPasswordUpdateDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
         if (currentPwdUpdatedAtMillis != tokenPwdUpdatedAt.longValue()) {
-<<<<<<< HEAD
             throw new ApiException(MessageKeys.VALIDATION_RESET_TOKEN_USED, 400);
-=======
-            throw new InvalidTokenException(MessageKeys.VALIDATION_RESET_TOKEN_USED);
->>>>>>> bdb0356 (Refactored)
         }
 
         user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
@@ -613,11 +398,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         emailService.sendPasswordChangedEmail(user.getEmail());
-<<<<<<< HEAD
         return new ApiResponseDTO(messageService.getMessage(MessageKeys.AUTH_PASSWORD_UPDATED));
-=======
-        return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_PASSWORD_UPDATED));
->>>>>>> bdb0356 (Refactored)
     }
 
     private User createUser(RegisterRequestDTO dto) {
@@ -662,11 +443,7 @@ public class AuthServiceImpl implements AuthService {
     private void assignRole(User user, RoleEnums roleEnum) {
 
         Role role = roleRepository.findByAuthority(roleEnum)
-<<<<<<< HEAD
                 .orElseThrow(() -> new ApiException(MessageKeys.ERROR_ROLE_NOT_FOUND, 400));
-=======
-                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_ROLE_NOT_FOUND));
->>>>>>> bdb0356 (Refactored)
 
         UserRole userRole = new UserRole(
                 new UserRoleId(user.getId(), role.getId()),
@@ -698,7 +475,6 @@ public class AuthServiceImpl implements AuthService {
         sellerRepository.save(seller);
     }
 
-<<<<<<< HEAD
     private void saveAddress(User user, AddressDTO dto) {
 
         Address address = new Address();
@@ -709,20 +485,6 @@ public class AuthServiceImpl implements AuthService {
         address.setCountry(dto.getCountry());
         address.setZipCode(dto.getZipCode());
         address.setLabel(dto.getLabel());
-=======
-    private void saveAddress(User user, String addressLine, String city,
-            String state, String country, String zipCode,
-            AddressLabelEnums label) {
-
-        Address address = new Address();
-
-        address.setAddressLine(addressLine);
-        address.setCity(city);
-        address.setState(state);
-        address.setCountry(country);
-        address.setZipCode(zipCode);
-        address.setLabel(label);
->>>>>>> bdb0356 (Refactored)
         address.setUser(user);
 
         addressRepository.save(address);
@@ -745,14 +507,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private boolean isProtectedAdmin(User user) {
-<<<<<<< HEAD
         return user != null && MessageKeys.PROTECTED_ADMIN_EMAIL.equalsIgnoreCase(user.getEmail());
-=======
-        return user != null && PROTECTED_ADMIN_EMAIL.equalsIgnoreCase(user.getEmail());
-    }
-
-    private String msg(String key) {
-        return messageService.get(key);
->>>>>>> bdb0356 (Refactored)
     }
 }

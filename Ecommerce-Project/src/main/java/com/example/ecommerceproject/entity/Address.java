@@ -1,12 +1,6 @@
 package com.example.ecommerceproject.entity;
 
-<<<<<<< HEAD
 import com.example.ecommerceproject.enums.AddressType;
-=======
-
-import com.example.ecommerceproject.enums.AddressLabelEnums;
-
->>>>>>> bdb0356 (Refactored)
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -39,11 +33,7 @@ public class Address {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-<<<<<<< HEAD
     AddressType label;
-=======
-    AddressLabelEnums label;
->>>>>>> bdb0356 (Refactored)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")

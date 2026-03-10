@@ -5,18 +5,19 @@ import lombok.Data;
 
 @Data
 public class AddressUpdateRequestDTO {
-    @NotBlank(message = "AddressLine is required")
+
+    @NotBlank(message = "{validation.address_line_required}")
     String addressLine;
 
-    @NotBlank(message = "City is required")
+    @NotBlank(message = "{validation.city_required}")
     String city;
 
-    @NotBlank(message = "State is required")
+    @NotBlank(message = "{validation.state_required}")
     String state;
 
-    @NotBlank(message = "Country is required")
+    @NotBlank(message = "{validation.country_required}")
     String country;
 
-    @NotBlank(message = "Zip Code is required")
+    @NotBlank(message = "{validation.zip_code_required}")
     String zipCode;
 }

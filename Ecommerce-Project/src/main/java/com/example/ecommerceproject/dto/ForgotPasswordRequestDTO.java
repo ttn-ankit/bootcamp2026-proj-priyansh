@@ -15,8 +15,8 @@ import lombok.experimental.FieldDefaults;
 public class ForgotPasswordRequestDTO {
 
     @Schema(example = "user@example.com", description = "Registered email address")
-    @NotBlank
-    @Email(message = "Invalid Email")
+    @NotBlank(message = "{validation.email_required}")
+    @Email(message = "{validation.email_invalid}")
     String email;
 }
 

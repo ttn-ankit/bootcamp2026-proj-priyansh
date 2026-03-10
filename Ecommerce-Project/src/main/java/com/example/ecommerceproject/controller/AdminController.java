@@ -47,11 +47,11 @@ public class AdminController {
     public ResponseEntity<Page<CustomerResponseDTO>> getCustomer(
         @Parameter(description = "Page number to retrieve (starts at 0)")
         @RequestParam(defaultValue = "0")
-        @Min(value = 0, message = "Page offset cannot be negative") int pageOffset,
+        @Min(value = 0, message = "{validation.page_offset_negative}") int pageOffset,
 
         @RequestParam(defaultValue = "10")
-        @Min(value = 1, message = "Page size must be atleast 1")
-        @Max(value = 100, message = "Page size cannot exceed 100") int pageSize,
+        @Min(value = 1, message = "{validation.page_size_min}")
+        @Max(value = 100, message = "{validation.page_size_max}") int pageSize,
 
         @RequestParam(defaultValue = "id") String sort,
         @RequestParam(required = false) String email
@@ -70,11 +70,11 @@ public class AdminController {
     public ResponseEntity<Page<SellerResponseDTO>> getSellers(
         @Parameter(description = "Page number to retrieve (starts at 0)")
         @RequestParam(defaultValue = "0")
-        @Min(value = 0, message = "Page offset cannot be negative") int pageOffset,
+        @Min(value = 0, message = "{validation.page_offset_negative}") int pageOffset,
 
         @RequestParam(defaultValue = "10")
-        @Min(value = 1, message = "Page size must be atleast 1")
-        @Max(value = 100, message = "Page size cannot exceed 100") int pageSize,
+        @Min(value = 1, message = "{validation.page_size_min}")
+        @Max(value = 100, message = "{validation.page_size_max}") int pageSize,
 
         @RequestParam(defaultValue = "id") String sort,
         @RequestParam(required = false) String email
@@ -92,7 +92,7 @@ public class AdminController {
     public ResponseEntity<ApiResponseDTO> activateCustomer(
         @Parameter(description = "ID of the customer to activate", required = true)
         @PathVariable 
-        @Positive(message = "Customer ID must be greater than 0") Long id)
+        @Positive(message = "{validation.customer_id_positive}") Long id)
     {
         return ResponseEntity.ok(adminService.activateCustomer(id));
     }
@@ -107,7 +107,7 @@ public class AdminController {
     public ResponseEntity<ApiResponseDTO> deactivateCustomer(
         @Parameter(description = "ID of the customer to deactivate", required = true)
         @PathVariable
-        @Positive(message = "Customer id must be greater than 0")
+        @Positive(message = "{validation.customer_id_positive}")
         Long id
     )
     {
@@ -124,7 +124,7 @@ public class AdminController {
     public ResponseEntity<ApiResponseDTO> activateSeller(
         @Parameter(description = "ID of the seller to activate", required = true)
         @PathVariable 
-        @Positive(message = "Customer ID must be greater than 0") Long id)
+        @Positive(message = "{validation.customer_id_positive}") Long id)
     {
         return ResponseEntity.ok(adminService.activateSeller(id));
     }
@@ -139,7 +139,7 @@ public class AdminController {
     public ResponseEntity<ApiResponseDTO> deactivateSeller(
         @Parameter(description = "ID of the seller to deactivate", required = true)
         @PathVariable
-        @Positive(message = "Customer id must be greater than 0")
+        @Positive(message = "{validation.customer_id_positive}")
         Long id
     )
     {

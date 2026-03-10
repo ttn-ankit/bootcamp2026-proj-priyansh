@@ -2,6 +2,7 @@ package com.example.ecommerceproject.dto;
 
 import static lombok.AccessLevel.PRIVATE;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -10,10 +11,13 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = PRIVATE)
 public class SellerPasswordUpdateRequestDTO {
 
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,15}$", 
-            message = "Password must be 8-15 characters with at least 1 lowercase, 1 uppercase, 1 number, and 1 special character")
+    @NotBlank(message = "{validation.password_required}")
+    @Pattern(
+        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,25}$",
+        message = "{validation.password_strength}")
     String password;
 
+    @NotBlank(message = "{validation.confirm_password_required}")
     String confirmPassword;
 }
 
