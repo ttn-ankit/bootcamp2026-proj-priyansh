@@ -27,6 +27,7 @@ import com.example.ecommerceproject.repository.UserRepository;
 import com.example.ecommerceproject.service.EmailService;
 import com.example.ecommerceproject.service.MessageService;
 import com.example.ecommerceproject.service.SellerService;
+import com.example.ecommerceproject.service.UserSessionService;
 import com.example.ecommerceproject.util.MessageKeys;
 
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ public class SellerServiceImpl implements SellerService {
     final PasswordEncoder passwordEncoder;
     final EmailService emailService;
     final MessageService messageService;
+    final UserSessionService userSessionService;
 
     @Override
     @Transactional(readOnly = true)
@@ -109,6 +111,9 @@ public class SellerServiceImpl implements SellerService {
 
         user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         userRepository.save(user);
+
+        // Revoke all other sessions for security (user will need to login again on other devices)
+        userSessionService.revokeAllRefreshTokens(user);
 
         emailService.sendPasswordChangedEmail(user.getEmail());
 

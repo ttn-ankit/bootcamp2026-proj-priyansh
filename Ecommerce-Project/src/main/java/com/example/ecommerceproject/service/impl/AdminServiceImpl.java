@@ -27,6 +27,7 @@ import com.example.ecommerceproject.repository.SellerRepository;
 import com.example.ecommerceproject.repository.UserRepository;
 import com.example.ecommerceproject.service.AdminService;
 import com.example.ecommerceproject.service.EmailService;
+import com.example.ecommerceproject.service.UserSessionService;
 import com.example.ecommerceproject.util.MessageKeys;
 import com.example.ecommerceproject.service.MessageService;
 
@@ -47,6 +48,7 @@ public class AdminServiceImpl implements AdminService{
     final EmailService emailService;
     final MessageService messageService;
     final ModelMapper modelMapper;
+    final UserSessionService userSessionService;
 
     @Override
     @Transactional(readOnly = true)
@@ -111,6 +113,9 @@ public class AdminServiceImpl implements AdminService{
 
         user.setActive(false);
         userRepository.save(user);
+        
+        userSessionService.revokeAllRefreshTokens(user);
+        
         emailService.sendAccountDeactivationEmail(user.getEmail());
 
         return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_CUSTOMER_DEACTIVATED));
@@ -150,6 +155,10 @@ public class AdminServiceImpl implements AdminService{
 
         user.setActive(false);
         userRepository.save(user);
+        
+        // Revoke all active sessions for this user
+        userSessionService.revokeAllRefreshTokens(user);
+        
         emailService.sendAccountDeactivationEmail(user.getEmail());
 
         return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_SELLER_DEACTIVATED));
