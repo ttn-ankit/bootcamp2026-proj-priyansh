@@ -43,7 +43,6 @@ public class RegisterRequestDTO {
     String firstName;
 
     @Schema(example = "Martin")
-    @NotBlank
     @Size(max = 30)
     String middleName;
 

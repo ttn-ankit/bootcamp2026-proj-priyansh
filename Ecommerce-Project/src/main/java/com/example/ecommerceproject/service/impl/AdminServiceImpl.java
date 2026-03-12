@@ -37,9 +37,7 @@ import lombok.experimental.FieldDefaults;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE)
-public class AdminServiceImpl implements AdminService{
-    
-    static final String PROTECTED_ADMIN_EMAIL = "admin@ecommerce.com";
+public class AdminServiceImpl implements AdminService {
 
     final CustomerRepository customerRepository;
     final SellerRepository sellerRepository;
@@ -53,10 +51,10 @@ public class AdminServiceImpl implements AdminService{
     @Override
     @Transactional(readOnly = true)
     public Page<CustomerResponseDTO> getAllCustomers(int page, int size, String sort, String email) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sort).ascending());
+        Pageable pageable = PageRequest.of(page, size, buildSort(sort).ascending());
 
         Page<Customer> customers;
-        if(email != null && !email.isBlank()){
+        if (email != null && !email.isBlank()) {
             customers = customerRepository.findByUser_EmailContainingIgnoreCase(email, pageable);
         } else {
             customers = customerRepository.findAll(pageable);
@@ -68,10 +66,10 @@ public class AdminServiceImpl implements AdminService{
     @Override
     @Transactional(readOnly = true)
     public Page<SellerResponseDTO> getAllSellers(int page, int size, String sort, String email) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sort).ascending());
+        Pageable pageable = PageRequest.of(page, size, buildSort(sort).ascending());
         Page<Seller> sellers;
 
-        if(email != null && !email.isBlank()){
+        if (email != null && !email.isBlank()) {
             sellers = sellerRepository.findByUser_EmailContainingIgnoreCase(email, pageable);
         } else {
             sellers = sellerRepository.findAll(pageable);
@@ -79,16 +77,31 @@ public class AdminServiceImpl implements AdminService{
         return sellers.map(this::mapToSellerDTO);
     }
 
+    private Sort buildSort(String sort) {
+        return switch (sort.toLowerCase()) {
+            case "email" -> Sort.by("user.email");
+            case "firstname" -> Sort.by("user.firstName");
+            case "lastname" -> Sort.by("user.lastName");
+            case "name", "fullname" -> Sort.by("user.firstName");
+            case "active", "isactive" -> Sort.by("user.isActive");
+            case "created", "createdate" -> Sort.by("user.createdDate");
+            case "updated", "updatedate" -> Sort.by("user.updatedDate");
+            case "id" -> Sort.by("id");
+            default -> Sort.by("id"); 
+        };
+    }
+
     @Override
     @Transactional
     public ApiResponseDTO activateCustomer(Long customerId) {
-        Customer customer = customerRepository.findById(customerId).orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND));
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND));
 
         User user = customer.getUser();
         validateUserNotDeleted(user);
 
-        if(user.isActive()){
-            throw new BadRequestException(MessageKeys.VALIDATION_USER_ALREADY_DELETED);
+        if (user.isActive()) {
+            throw new BadRequestException(MessageKeys.VALIDATION_USER_ALREADY_ACTIVATED);
         }
 
         user.setActive(true);
@@ -101,21 +114,22 @@ public class AdminServiceImpl implements AdminService{
     @Override
     @Transactional
     public ApiResponseDTO deactivateCustomer(Long customerId) {
-        Customer customer = customerRepository.findById(customerId).orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND));
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND));
         User user = customer.getUser();
 
         validateUserNotDeleted(user);
         validateNotProtectedAdmin(user);
 
-        if(!user.isActive()){
+        if (!user.isActive()) {
             throw new BadRequestException(MessageKeys.VALIDATION_USER_ALREADY_DEACTIVATED);
         }
 
         user.setActive(false);
         userRepository.save(user);
-        
+
         userSessionService.revokeAllRefreshTokens(user);
-        
+
         emailService.sendAccountDeactivationEmail(user.getEmail());
 
         return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_CUSTOMER_DEACTIVATED));
@@ -124,13 +138,14 @@ public class AdminServiceImpl implements AdminService{
     @Override
     @Transactional
     public ApiResponseDTO activateSeller(Long sellerId) {
-        Seller seller = sellerRepository.findById(sellerId).orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_SELLER_NOT_FOUND));
+        Seller seller = sellerRepository.findById(sellerId)
+                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_SELLER_NOT_FOUND));
         User user = seller.getUser();
 
         validateUserNotDeleted(user);
 
-        if(user.isActive()){
-            throw new BadRequestException(MessageKeys.VALIDATION_USER_ALREADY_DELETED);
+        if (user.isActive()) {
+            throw new BadRequestException(MessageKeys.VALIDATION_USER_ALREADY_ACTIVATED);
         }
 
         user.setActive(true);
@@ -143,29 +158,30 @@ public class AdminServiceImpl implements AdminService{
     @Override
     @Transactional
     public ApiResponseDTO deactivateSeller(Long sellerId) {
-        Seller seller = sellerRepository.findById(sellerId).orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_SELLER_NOT_FOUND));
+        Seller seller = sellerRepository.findById(sellerId)
+                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_SELLER_NOT_FOUND));
         User user = seller.getUser();
 
         validateUserNotDeleted(user);
         validateNotProtectedAdmin(user);
 
-        if(!user.isActive()){
+        if (!user.isActive()) {
             throw new BadRequestException(MessageKeys.VALIDATION_USER_ALREADY_DEACTIVATED);
         }
 
         user.setActive(false);
         userRepository.save(user);
-        
+
         // Revoke all active sessions for this user
         userSessionService.revokeAllRefreshTokens(user);
-        
+
         emailService.sendAccountDeactivationEmail(user.getEmail());
 
         return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_SELLER_DEACTIVATED));
     }
 
     private void validateNotProtectedAdmin(User user) {
-        if (user != null && PROTECTED_ADMIN_EMAIL.equalsIgnoreCase(user.getEmail())) {
+        if (user != null && MessageKeys.PROTECTED_ADMIN_EMAIL.equalsIgnoreCase(user.getEmail())) {
             throw new BadRequestException(MessageKeys.AUTH_ADMIN_PROTECTED);
         }
     }
@@ -178,24 +194,24 @@ public class AdminServiceImpl implements AdminService{
 
     private CustomerResponseDTO mapToCustomerDTO(Customer customer) {
         CustomerResponseDTO dto = modelMapper.map(customer, CustomerResponseDTO.class);
-        
+
         User user = customer.getUser();
         dto.setFullName(buildFullName(user));
         dto.setEmail(user.getEmail());
         dto.setActive(user.isActive());
-        
+
         return dto;
     }
 
     private SellerResponseDTO mapToSellerDTO(Seller seller) {
         SellerResponseDTO dto = modelMapper.map(seller, SellerResponseDTO.class);
-        
+
         User user = seller.getUser();
         dto.setFullName(buildFullName(user));
         dto.setEmail(user.getEmail());
         dto.setActive(user.isActive());
         dto.setCompanyAddress(fetchAndFormatAddress(user));
-        
+
         return dto;
     }
 
@@ -204,20 +220,19 @@ public class AdminServiceImpl implements AdminService{
         if (addresses == null || addresses.isEmpty()) {
             return "N/A";
         }
-        
-        Address addr = addresses.get(0); 
+
+        Address addr = addresses.get(0);
         return String.format("%s, %s, %s - %s, %s",
                 addr.getAddressLine() != null ? addr.getAddressLine() : "",
                 addr.getCity() != null ? addr.getCity() : "",
                 addr.getState() != null ? addr.getState() : "",
                 addr.getZipCode() != null ? addr.getZipCode() : "",
-                addr.getCountry() != null ? addr.getCountry() : ""
-        ).replaceAll(", ,", ",").replaceAll(" - ,", ",");
+                addr.getCountry() != null ? addr.getCountry() : "").replaceAll(", ,", ",").replaceAll(" - ,", ",");
     }
 
     private String buildFullName(User user) {
-        return (user.getFirstName() + " " + 
-               (user.getMiddleName() != null ? user.getMiddleName() + " " : "") + 
-               user.getLastName()).trim().replaceAll(" +", " ");
+        return (user.getFirstName() + " " +
+                (user.getMiddleName() != null ? user.getMiddleName() + " " : "") +
+                user.getLastName()).trim().replaceAll(" +", " ");
     }
 }

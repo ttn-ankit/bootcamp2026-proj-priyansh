@@ -16,6 +16,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.example.ecommerceproject.filter.JwtAuthenticationFilter;
+import com.example.ecommerceproject.handler.UnifiedSecurityErrorHandler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -28,14 +29,18 @@ import lombok.experimental.FieldDefaults;
 public class SecurityConfig {
 
     final JwtAuthenticationFilter jwtFilter;
+    final UnifiedSecurityErrorHandler securityErrorHandler;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .formLogin(form -> form.disable())
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .accessDeniedHandler(securityErrorHandler)
+                        .authenticationEntryPoint(securityErrorHandler))
                 .authorizeHttpRequests(auth -> auth
 <<<<<<< HEAD
                         .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/**")
@@ -54,7 +59,6 @@ public class SecurityConfig {
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-
     }
 
     @Bean

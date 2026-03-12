@@ -36,7 +36,6 @@ import static lombok.AccessLevel.PRIVATE;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -44,7 +43,6 @@ import java.util.UUID;
 @FieldDefaults(level = PRIVATE)
 public class AuthServiceImpl implements AuthService {
     static final int MAX_FAILED_ATTEMPTS = 3;
-    static final String PROTECTED_ADMIN_EMAIL = "admin@ecommerce.com";
 
     final UserRepository userRepository;
     final RoleRepository roleRepository;

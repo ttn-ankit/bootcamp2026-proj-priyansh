@@ -47,17 +47,17 @@ public class AdminController {
     public ResponseEntity<Page<CustomerResponseDTO>> getCustomer(
         @Parameter(description = "Page number to retrieve (starts at 0)")
         @RequestParam(defaultValue = "0")
-        @Min(value = 0, message = "{validation.page_offset_negative}") int pageOffset,
+        @Min(value = 0, message = "{validation.page_offset_negative}") int page,
 
         @RequestParam(defaultValue = "10")
         @Min(value = 1, message = "{validation.page_size_min}")
-        @Max(value = 100, message = "{validation.page_size_max}") int pageSize,
+        @Max(value = 100, message = "{validation.page_size_max}") int size,
 
         @RequestParam(defaultValue = "id") String sort,
         @RequestParam(required = false) String email
     ){ 
         return ResponseEntity.ok(adminService.getAllCustomers(
-            pageOffset, pageSize, sort, email));
+            page, size, sort, email));
     }
 
     @Operation(summary = "Get all registered sellers", description = "Retrieves a paginated list of all registered sellers. Can be sorted and filtered by email.")
@@ -70,16 +70,16 @@ public class AdminController {
     public ResponseEntity<Page<SellerResponseDTO>> getSellers(
         @Parameter(description = "Page number to retrieve (starts at 0)")
         @RequestParam(defaultValue = "0")
-        @Min(value = 0, message = "{validation.page_offset_negative}") int pageOffset,
+        @Min(value = 0, message = "{validation.page_offset_negative}") int page,
 
         @RequestParam(defaultValue = "10")
         @Min(value = 1, message = "{validation.page_size_min}")
-        @Max(value = 100, message = "{validation.page_size_max}") int pageSize,
+        @Max(value = 100, message = "{validation.page_size_max}") int size,
 
         @RequestParam(defaultValue = "id") String sort,
         @RequestParam(required = false) String email
     ){
-        return ResponseEntity.ok(adminService.getAllSellers(pageOffset, pageSize, sort, email));
+        return ResponseEntity.ok(adminService.getAllSellers(page, size, sort, email));
     }
 
     @Operation(summary = "Activate a customer account", description = "Activates a currently deactivated customer account. Sends an email notification to the customer.")
@@ -124,7 +124,7 @@ public class AdminController {
     public ResponseEntity<ApiResponseDTO> activateSeller(
         @Parameter(description = "ID of the seller to activate", required = true)
         @PathVariable 
-        @Positive(message = "{validation.customer_id_positive}") Long id)
+        @Positive(message = "{validation.seller_id_positive}") Long id)
     {
         return ResponseEntity.ok(adminService.activateSeller(id));
     }

@@ -5,10 +5,13 @@ public final class MessageKeys {
     private MessageKeys() {
     }
 
+    public static final String PROTECTED_ADMIN_EMAIL = "admin@ecommerce.com";
     public static final String AUTH_INVALID_CREDENTIALS = "auth.invalid_credentials";
     public static final String AUTH_ACCOUNT_LOCKED = "auth.account_locked";
     public static final String AUTH_ACCOUNT_NOT_ACTIVATED = "auth.account_not_activated";
     public static final String AUTH_PASSWORD_EXPIRED = "auth.password_expired";
+    public static final String AUTH_ACCESS_DENIED = "auth.access_denied";
+    public static final String AUTH_AUTHENTICATION_REQUIRED = "auth.authentication_required";
     public static final String AUTH_LOGOUT_SUCCESS = "auth.logout_success";
     public static final String AUTH_TOKEN_REQUIRED = "auth.token_required";
     public static final String AUTH_REGISTRATION_SUCCESS = "auth.registration_success";
@@ -48,6 +51,14 @@ public final class MessageKeys {
     public static final String VALIDATION_ADDRESS_LABEL_REQUIRED = "validation.address_label_required";
     public static final String VALIDATION_USER_ALREADY_DELETED = "validation.user_already_deleted";
     public static final String VALIDATION_USER_ALREADY_DEACTIVATED = "validation.user_already_deactivated";
+    public static final String VALIDATION_USER_ALREADY_ACTIVATED = "validation.user_already_activated";
+    
+    // Admin Controller Validation Messages
+    public static final String VALIDATION_PAGE_OFFSET_NEGATIVE = "validation.page_offset_negative";
+    public static final String VALIDATION_PAGE_SIZE_MIN = "validation.page_size_min";
+    public static final String VALIDATION_PAGE_SIZE_MAX = "validation.page_size_max";
+    public static final String VALIDATION_CUSTOMER_ID_POSITIVE = "validation.customer_id_positive";
+    public static final String VALIDATION_SELLER_ID_POSITIVE = "validation.seller_id_positive";
 
     public static final String ERROR_INTERNAL_SERVER = "error.internal_server";
     public static final String ERROR_RESOURCE_NOT_FOUND = "error.resource_not_found";
