@@ -135,40 +135,6 @@ public class AuthServiceImpl implements AuthService {
         return new ApiResponseDTO(messageService.getMessage(MessageKeys.AUTH_RESEND_ACTIVATION_SUCCESS));
     }
 
-    @Override
-    @Transactional
-    public ApiResponseDTO approveSeller(Long sellerId) {
-
-        Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_SELLER_NOT_FOUND, 400));
-
-        seller.setApproved(true);
-        User user = seller.getUser();
-        user.setActive(true);
-        sellerRepository.save(seller);
-        userRepository.save(user);
-
-        return new ApiResponseDTO(messageService.getMessage(MessageKeys.AUTH_SELLER_APPROVED));
-    }
-
-    @Override
-    @Transactional
-    public ApiResponseDTO rejectSeller(Long sellerId) {
-
-        Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_SELLER_NOT_FOUND, 400));
-
-        User user = seller.getUser();
-        if (isProtectedAdmin(user)) {
-            throw new ApiException(MessageKeys.AUTH_ADMIN_PROTECTED, 400);
-        }
-        user.setDeleted(true);
-        sellerRepository.delete(seller);
-        userRepository.save(user);
-
-        return new ApiResponseDTO(messageService.getMessage(MessageKeys.AUTH_SELLER_REJECTED));
-    }
-
     private void validateCustomerRegistration(RegisterRequestDTO dto) {
 
         if (userRepository.existsByEmailIgnoreCase(dto.getEmail())) {
@@ -484,7 +450,6 @@ public class AuthServiceImpl implements AuthService {
         address.setZipCode(dto.getZipCode());
         address.setLabel(dto.getLabel());
         address.setUser(user);
-
         addressRepository.save(address);
     }
 

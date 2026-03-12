@@ -1,23 +1,28 @@
 package com.example.ecommerceproject.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import com.example.ecommerceproject.enums.AddressType;
 
 @Data
 public class AddressUpdateRequestDTO {
 
-    @NotBlank(message = "{validation.address_line_required}")
+    @Size(max = 255, message = "{validation.address_line_invalid}")
     String addressLine;
 
-    @NotBlank(message = "{validation.city_required}")
+    @Size(max = 100, message = "{validation.city_invalid}")
     String city;
 
-    @NotBlank(message = "{validation.state_required}")
+    @Size(max = 100, message = "{validation.state_invalid}")
     String state;
 
-    @NotBlank(message = "{validation.country_required}")
+    @Size(max = 100, message = "{validation.country_invalid}")
     String country;
 
-    @NotBlank(message = "{validation.zip_code_required}")
+    @Size(max = 20, message = "{validation.zip_code_invalid}")
     String zipCode;
+    
+    @NotNull(message = "{validation.address_label_required}")
+    AddressType label;
 }

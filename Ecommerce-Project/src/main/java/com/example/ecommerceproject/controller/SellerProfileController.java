@@ -19,10 +19,10 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/seller/profile")
-@PreAuthorize("hasRole('SELLER')") // Common Validation: Must be a Seller
+@PreAuthorize("hasRole('SELLER')")
 @RequiredArgsConstructor
 @Tag(name = "Seller Profile Management", description = "APIs for Sellers to manage their profile, password, and addresses")
-@SecurityRequirement(name = "bearerAuth") // Tells Swagger all endpoints here require a JWT token
+@SecurityRequirement(name = "bearerAuth")
 public class SellerProfileController {
 
     private final SellerService sellerService;

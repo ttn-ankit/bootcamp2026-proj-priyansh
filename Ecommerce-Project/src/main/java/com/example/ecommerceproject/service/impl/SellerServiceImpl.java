@@ -19,8 +19,7 @@ import com.example.ecommerceproject.dto.SellerProfileUpdateRequestDTO;
 import com.example.ecommerceproject.entity.Address;
 import com.example.ecommerceproject.entity.Seller;
 import com.example.ecommerceproject.entity.User;
-import com.example.ecommerceproject.exception.BadRequestException;
-import com.example.ecommerceproject.exception.ResourceNotFoundException;
+import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.repository.AddressRepository;
 import com.example.ecommerceproject.repository.SellerRepository;
 import com.example.ecommerceproject.repository.UserRepository;
@@ -29,6 +28,8 @@ import com.example.ecommerceproject.service.MessageService;
 import com.example.ecommerceproject.service.SellerService;
 import com.example.ecommerceproject.service.UserSessionService;
 import com.example.ecommerceproject.util.MessageKeys;
+import com.example.ecommerceproject.enums.AddressTypeEnums;
+import com.example.ecommerceproject.enums.AddressType;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -55,8 +56,7 @@ public class SellerServiceImpl implements SellerService {
 
         Seller seller = getActiveSellerByUserId(userId);
         User user = seller.getUser();
-
-        List<Address> addresses = addressRepository.findByUser(user);
+        List<Address> addresses = addressRepository.findByUserAndAddressType(user, AddressTypeEnums.SELLER_BUSINESS);
         Address address = addresses.isEmpty() ? new Address() : addresses.get(0);
 
         String imageUrl = computeImageUrl(user.getId());
@@ -103,7 +103,7 @@ public class SellerServiceImpl implements SellerService {
     @Transactional
     public ApiResponseDTO updatePassword(Long userId, SellerPasswordUpdateRequestDTO dto) {
         if(!dto.getPassword().equals(dto.getConfirmPassword())){
-            throw new BadRequestException(messageService.get(MessageKeys.VALIDATION_PASSWORD_DO_NOT_MATCH));
+            throw new ApiException(messageService.get(MessageKeys.VALIDATION_PASSWORD_DO_NOT_MATCH), 400);
         }
 
         Seller seller = getActiveSellerByUserId(userId);
@@ -112,7 +112,6 @@ public class SellerServiceImpl implements SellerService {
         user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         userRepository.save(user);
 
-        // Revoke all other sessions for security (user will need to login again on other devices)
         userSessionService.revokeAllRefreshTokens(user);
 
         emailService.sendPasswordChangedEmail(user.getEmail());
@@ -123,16 +122,40 @@ public class SellerServiceImpl implements SellerService {
     @Override
     @Transactional
     public ApiResponseDTO updateAddress(Long userId, Long addressId, AddressUpdateRequestDTO dto) {
-        getActiveSellerByUserId(userId);
-
+        Seller seller = getActiveSellerByUserId(userId);
+        User user = seller.getUser();
         Address address = addressRepository.findById(addressId)
-        .orElseThrow(() -> new ResourceNotFoundException(messageService.get(MessageKeys.ERROR_ADDRESS_NOT_FOUND)));
+        .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.ERROR_ADDRESS_NOT_FOUND), 400));
 
-        address.setAddressLine(dto.getAddressLine());
-        address.setCity(dto.getCity());
-        address.setState(dto.getState());
-        address.setCountry(dto.getCountry());
-        address.setZipCode(dto.getZipCode());
+        // Security checks: Ensure address belongs to seller AND is a business address
+        if (!address.getUser().getId().equals(user.getId())) {
+            throw new ApiException(messageService.get(MessageKeys.AUTH_ACCESS_DENIED), 400);
+        }
+        
+        if (!AddressTypeEnums.SELLER_BUSINESS.equals(address.getAddressType())) {
+            throw new ApiException(messageService.get(MessageKeys.AUTH_ACCESS_DENIED), 400);
+        }
+
+        // Partial update: Only update fields that are provided (not null/empty)
+        if (dto.getAddressLine() != null && !dto.getAddressLine().trim().isEmpty()) {
+            address.setAddressLine(dto.getAddressLine().trim());
+        }
+        if (dto.getCity() != null && !dto.getCity().trim().isEmpty()) {
+            address.setCity(dto.getCity().trim());
+        }
+        if (dto.getState() != null && !dto.getState().trim().isEmpty()) {
+            address.setState(dto.getState().trim());
+        }
+        if (dto.getCountry() != null && !dto.getCountry().trim().isEmpty()) {
+            address.setCountry(dto.getCountry().trim());
+        }
+        if (dto.getZipCode() != null && !dto.getZipCode().trim().isEmpty()) {
+            address.setZipCode(dto.getZipCode().trim());
+        }
+        if (dto.getLabel() != null) {
+            validateSellerAddressLabel(dto.getLabel());
+            address.setLabel(dto.getLabel());
+        }
 
         addressRepository.save(address);
 
@@ -141,10 +164,10 @@ public class SellerServiceImpl implements SellerService {
 
     private Seller getActiveSellerByUserId(Long userId) {
         Seller seller = sellerRepository.findByUser_Id(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(messageService.get(MessageKeys.ERROR_SELLER_NOT_FOUND)));
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.ERROR_SELLER_NOT_FOUND), 400));
 
         if (!seller.getUser().isActive()) {
-            throw new BadRequestException(messageService.get(MessageKeys.AUTH_ACCOUNT_NOT_ACTIVATED));
+            throw new ApiException(messageService.get(MessageKeys.AUTH_ACCOUNT_NOT_ACTIVATED), 400);
         }
 
         return seller;
@@ -159,6 +182,12 @@ public class SellerServiceImpl implements SellerService {
             }
         }
         return null;
+    }
+
+    private void validateSellerAddressLabel(AddressType label) {
+        if (label == AddressType.HOME) {
+            throw new ApiException(messageService.get(MessageKeys.VALIDATION_INVALID_SELLER_ADDRESS_LABEL), 400);
+        }
     }
 
 }

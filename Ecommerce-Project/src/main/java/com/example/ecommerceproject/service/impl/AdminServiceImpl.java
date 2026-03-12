@@ -5,7 +5,6 @@ import static lombok.AccessLevel.PRIVATE;
 import java.util.List;
 
 import org.springframework.data.domain.Pageable;
-import com.example.ecommerceproject.exception.BadRequestException;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,7 +19,7 @@ import com.example.ecommerceproject.entity.Address;
 import com.example.ecommerceproject.entity.Customer;
 import com.example.ecommerceproject.entity.Seller;
 import com.example.ecommerceproject.entity.User;
-import com.example.ecommerceproject.exception.ResourceNotFoundException;
+import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.repository.AddressRepository;
 import com.example.ecommerceproject.repository.CustomerRepository;
 import com.example.ecommerceproject.repository.SellerRepository;
@@ -95,13 +94,13 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public ApiResponseDTO activateCustomer(Long customerId) {
         Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND, 400));
 
         User user = customer.getUser();
         validateUserNotDeleted(user);
 
         if (user.isActive()) {
-            throw new BadRequestException(MessageKeys.VALIDATION_USER_ALREADY_ACTIVATED);
+            throw new ApiException(MessageKeys.VALIDATION_USER_ALREADY_ACTIVATED, 400);
         }
 
         user.setActive(true);
@@ -115,14 +114,14 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public ApiResponseDTO deactivateCustomer(Long customerId) {
         Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND, 400));
         User user = customer.getUser();
 
         validateUserNotDeleted(user);
         validateNotProtectedAdmin(user);
 
         if (!user.isActive()) {
-            throw new BadRequestException(MessageKeys.VALIDATION_USER_ALREADY_DEACTIVATED);
+            throw new ApiException(MessageKeys.VALIDATION_USER_ALREADY_DEACTIVATED, 400);
         }
 
         user.setActive(false);
@@ -139,13 +138,13 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public ApiResponseDTO activateSeller(Long sellerId) {
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_SELLER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_SELLER_NOT_FOUND,400));
         User user = seller.getUser();
 
         validateUserNotDeleted(user);
 
         if (user.isActive()) {
-            throw new BadRequestException(MessageKeys.VALIDATION_USER_ALREADY_ACTIVATED);
+            throw new ApiException(MessageKeys.VALIDATION_USER_ALREADY_ACTIVATED, 400);
         }
 
         user.setActive(true);
@@ -159,20 +158,19 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public ApiResponseDTO deactivateSeller(Long sellerId) {
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageKeys.ERROR_SELLER_NOT_FOUND));
+                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_SELLER_NOT_FOUND, 400));
         User user = seller.getUser();
 
         validateUserNotDeleted(user);
         validateNotProtectedAdmin(user);
 
         if (!user.isActive()) {
-            throw new BadRequestException(MessageKeys.VALIDATION_USER_ALREADY_DEACTIVATED);
+            throw new ApiException(MessageKeys.VALIDATION_USER_ALREADY_DEACTIVATED, 400);
         }
 
         user.setActive(false);
         userRepository.save(user);
 
-        // Revoke all active sessions for this user
         userSessionService.revokeAllRefreshTokens(user);
 
         emailService.sendAccountDeactivationEmail(user.getEmail());
@@ -182,13 +180,13 @@ public class AdminServiceImpl implements AdminService {
 
     private void validateNotProtectedAdmin(User user) {
         if (user != null && MessageKeys.PROTECTED_ADMIN_EMAIL.equalsIgnoreCase(user.getEmail())) {
-            throw new BadRequestException(MessageKeys.AUTH_ADMIN_PROTECTED);
+            throw new ApiException(MessageKeys.AUTH_ADMIN_PROTECTED, 400);
         }
     }
 
     private void validateUserNotDeleted(User user) {
         if (user.isDeleted()) {
-            throw new BadRequestException(MessageKeys.ERROR_USER_IS_DELETED);
+            throw new ApiException(MessageKeys.ERROR_USER_IS_DELETED, 400);
         }
     }
 

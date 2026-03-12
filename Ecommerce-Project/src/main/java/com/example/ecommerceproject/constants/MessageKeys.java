@@ -35,6 +35,8 @@ public final class MessageKeys {
     public static final String AUTH_INVALID_ACTIVATION_TOKEN = "auth.invalid_activation_token";
     public static final String AUTH_ACCOUNT_ALREADY_ACTIVATED = "auth.account_already_activated";
     public static final String AUTH_USER_NOT_FOUND = "auth.user_not_found";
+    public static final String AUTH_ACCESS_DENIED = "auth.access_denied";
+    public static final String AUTH_AUTHENTICATION_REQUIRED = "auth.authentication_required";
 
     // Validation Messages
     public static final String VALIDATION_FAILED = "validation.failed";

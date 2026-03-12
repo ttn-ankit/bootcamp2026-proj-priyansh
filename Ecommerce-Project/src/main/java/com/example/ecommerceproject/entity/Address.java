@@ -35,6 +35,10 @@ public class Address {
     @Column(nullable = false)
     AddressType label;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "address_type", nullable = false)
+    AddressType addressType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     User user;

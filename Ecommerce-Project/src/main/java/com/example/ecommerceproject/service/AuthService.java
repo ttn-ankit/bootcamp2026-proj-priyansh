@@ -13,8 +13,6 @@ public interface AuthService {
     ApiResponseDTO activateAccount(String tokenValue);
     ApiResponseDTO resendActivationLink(String email);
     ApiResponseDTO registerSeller(SellerRegisterRequestDTO registerRequestDTO);
-    ApiResponseDTO approveSeller(Long SellerId);
-    ApiResponseDTO rejectSeller(Long SellerId);
     LoginResponseDTO login(LoginRequestDTO responseDTO);
     ApiResponseDTO logout(String accessToken, String refreshToken);
     LoginResponseDTO refreshAccessToken(String refreshToken);
