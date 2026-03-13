@@ -2,11 +2,13 @@ package com.example.ecommerceproject.service.impl;
 
 import static lombok.AccessLevel.PRIVATE;
 
+import java.time.ZoneId;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.ecommerceproject.config.TokenBlacklist;
 import com.example.ecommerceproject.entity.RefreshToken;
 import com.example.ecommerceproject.entity.User;
 import com.example.ecommerceproject.repository.RefreshTokenRepository;
@@ -21,6 +23,7 @@ import lombok.experimental.FieldDefaults;
 public class UserSessionServiceImpl implements UserSessionService {
 
     final RefreshTokenRepository refreshTokenRepository;
+    final TokenBlacklist tokenBlacklist;
 
     @Override
     @Transactional
@@ -35,8 +38,20 @@ public class UserSessionServiceImpl implements UserSessionService {
             return 0;
         }
 
-        // Mark all tokens as revoked
-        activeTokens.forEach(token -> token.setRevoked(true));
+        // Blacklist all associated access tokens and revoke refresh tokens
+        activeTokens.forEach(token -> {
+            // Blacklist the access token
+            if (token.getAccessTokenJti() != null && !token.isRevoked()) {
+                long accessTokenExpiryMillis = token.getAccessTokenExpiry()
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli();
+                tokenBlacklist.add(token.getAccessTokenJti(), accessTokenExpiryMillis);
+            }
+            // Mark refresh token as revoked
+            token.setRevoked(true);
+        });
+        
         refreshTokenRepository.saveAll(activeTokens);
 
         return activeTokens.size();

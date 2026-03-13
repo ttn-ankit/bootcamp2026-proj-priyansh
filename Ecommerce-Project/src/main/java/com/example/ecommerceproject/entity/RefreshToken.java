@@ -33,12 +33,18 @@ public class RefreshToken {
     @Column(name = "token_id", nullable = false, unique = true, length = 100)
     String tokenId;
 
+    @Column(name = "access_token_jti", nullable = false, length = 100)
+    String accessTokenJti;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     User user;
 
     @Column(name = "expiry_date", nullable = false)
     LocalDateTime expiryDate;
+
+    @Column(name = "access_token_expiry", nullable = false)
+    LocalDateTime accessTokenExpiry;
 
     @Column(name = "revoked", nullable = false)
     boolean revoked = false;

@@ -182,12 +182,15 @@ public class AuthServiceImpl implements AuthService {
             userRepository.save(entity);
 
             String accessToken = jwtUtil.generateToken(user.getUserId(), user.getUsername(), user.getAuthorities());
+            String accessTokenJti = jwtUtil.extractJti(accessToken);
 
             RefreshToken refreshToken = new RefreshToken();
             refreshToken.setUser(entity);
             String refreshId = UUID.randomUUID().toString();
             refreshToken.setTokenId(refreshId);
+            refreshToken.setAccessTokenJti(accessTokenJti);
             refreshToken.setExpiryDate(LocalDateTime.now().plusDays(1));
+            refreshToken.setAccessTokenExpiry(LocalDateTime.now().plusMinutes(15));
             refreshTokenRepository.save(refreshToken);
 
             String refreshTokenValue = jwtUtil.generateRefreshToken(user.getUserId(), user.getUsername(), refreshId);
@@ -234,6 +237,15 @@ public class AuthServiceImpl implements AuthService {
                 String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
                 if (refreshId != null) {
                     refreshTokenRepository.findByTokenIdAndRevokedFalse(refreshId).ifPresent(storedToken -> {
+                        // Blacklist the associated access token
+                        if (storedToken.getAccessTokenJti() != null) {
+                            long accessTokenExpiryMillis = storedToken.getAccessTokenExpiry()
+                                    .atZone(ZoneId.systemDefault())
+                                    .toInstant()
+                                    .toEpochMilli();
+                            tokenBlacklist.add(storedToken.getAccessTokenJti(), accessTokenExpiryMillis);
+                        }
+                        // Revoke refresh token
                         storedToken.setRevoked(true);
                         refreshTokenRepository.save(storedToken);
                     });
@@ -284,20 +296,34 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 401);
         }
 
+        // Blacklist old access token
+        if (existingToken.getAccessTokenJti() != null) {
+            long accessTokenExpiryMillis = existingToken.getAccessTokenExpiry()
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli();
+            tokenBlacklist.add(existingToken.getAccessTokenJti(), accessTokenExpiryMillis);
+        }
+
+        // Revoke old refresh token
         existingToken.setRevoked(true);
         refreshTokenRepository.save(existingToken);
+
+        // Generate new tokens
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String newAccessToken = jwtUtil.generateToken(user.getId(), user.getEmail(), userDetails.getAuthorities());
+        String newAccessTokenJti = jwtUtil.extractJti(newAccessToken);
 
         RefreshToken newRefreshToken = new RefreshToken();
         newRefreshToken.setUser(user);
         String newRefreshId = UUID.randomUUID().toString();
         newRefreshToken.setTokenId(newRefreshId);
+        newRefreshToken.setAccessTokenJti(newAccessTokenJti);
         newRefreshToken.setExpiryDate(LocalDateTime.now().plusDays(1));
+        newRefreshToken.setAccessTokenExpiry(LocalDateTime.now().plusMinutes(15));
         refreshTokenRepository.save(newRefreshToken);
 
         String newRefreshTokenValue = jwtUtil.generateRefreshToken(user.getId(), user.getEmail(), newRefreshId);
-
-        CustomUserDetails userDetails = new CustomUserDetails(user);
-        String newAccessToken = jwtUtil.generateToken(user.getId(), user.getEmail(), userDetails.getAuthorities());
 
         return new LoginResponseDTO(
                 newAccessToken,
