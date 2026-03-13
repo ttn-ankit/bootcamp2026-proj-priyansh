@@ -1,5 +1,6 @@
 package com.example.ecommerceproject.service.impl;
 
+import com.example.ecommerceproject.dto.AddressDTO;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
 import com.example.ecommerceproject.dto.ForgotPasswordRequestDTO;
 import com.example.ecommerceproject.dto.LoginRequestDTO;
@@ -8,13 +9,8 @@ import com.example.ecommerceproject.dto.RegisterRequestDTO;
 import com.example.ecommerceproject.dto.ResetPasswordRequestDTO;
 import com.example.ecommerceproject.dto.SellerRegisterRequestDTO;
 import com.example.ecommerceproject.entity.*;
-import com.example.ecommerceproject.enums.AddressLabelEnums;
 import com.example.ecommerceproject.enums.RoleEnums;
 import com.example.ecommerceproject.exception.ApiException;
-import com.example.ecommerceproject.exception.BadRequestException;
-import com.example.ecommerceproject.exception.DuplicateResourceException;
-import com.example.ecommerceproject.exception.InvalidTokenException;
-import com.example.ecommerceproject.exception.ResourceNotFoundException;
 import com.example.ecommerceproject.config.TokenBlacklist;
 import com.example.ecommerceproject.repository.*;
 import com.example.ecommerceproject.service.AuthService;
@@ -27,7 +23,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -75,9 +70,6 @@ public class AuthServiceImpl implements AuthService {
 
         createCustomer(user, dto.getPhoneNumber());
 
-        saveAddress(user, dto.getAddressLine(), dto.getCity(), dto.getState(),
-                dto.getCountry(), dto.getZipCode(), dto.getLabel());
-
         createActivationToken(user);
 
         return new ApiResponseDTO(msg("auth.registration_success"));
@@ -94,8 +86,7 @@ public class AuthServiceImpl implements AuthService {
 
         createSeller(user, dto);
 
-        saveAddress(user, dto.getAddressLine(), dto.getCity(), dto.getState(),
-                dto.getCountry(), dto.getZipCode(), dto.getLabel());
+        saveAddress(user, dto.getAddress());
 
         emailService.sendSellerRegistrationEmail(user.getEmail());
 
@@ -107,13 +98,13 @@ public class AuthServiceImpl implements AuthService {
 
         ActivationToken token = activationTokenRepository
                 .findByToken(tokenValue)
-                .orElseThrow(() -> new InvalidTokenException("auth.invalid_activation_token"));
+                .orElseThrow(() -> new ApiException("auth.invalid_activation_token", 400));
 
         if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
             User user = token.getUser();
             activationTokenRepository.delete(token);
             createActivationToken(user);
-            throw new InvalidTokenException("auth.activation_expired");
+            throw new ApiException("auth.activation_expired", 400);
         }
 
         User user = token.getUser();
@@ -128,10 +119,10 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponseDTO resendActivationLink(String email) {
 
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("auth.user_not_found"));
+                .orElseThrow(() -> new ApiException("auth.user_not_found", 400));
 
         if (user.isActive()) {
-            throw new BadRequestException("auth.account_already_activated");
+            throw new ApiException("auth.account_already_activated", 400);
         }
 
         activationTokenRepository.deleteByUser(user);
@@ -144,7 +135,7 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponseDTO approveSeller(Long sellerId) {
 
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ResourceNotFoundException("error.seller_not_found"));
+                .orElseThrow(() -> new ApiException("error.seller_not_found", 400));
 
         seller.setApproved(true);
         User user = seller.getUser();
@@ -159,11 +150,11 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponseDTO rejectSeller(Long sellerId) {
 
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ResourceNotFoundException("error.seller_not_found"));
+                .orElseThrow(() -> new ApiException("error.seller_not_found", 400));
 
         User user = seller.getUser();
         if (isProtectedAdmin(user)) {
-            throw new BadRequestException("auth.admin_protected");
+            throw new ApiException("auth.admin_protected", 400);
         }
         user.setDeleted(true);
         sellerRepository.delete(seller);
@@ -175,25 +166,25 @@ public class AuthServiceImpl implements AuthService {
     private void validateCustomerRegistration(RegisterRequestDTO dto) {
 
         if (userRepository.existsByEmailIgnoreCase(dto.getEmail())) {
-            throw new DuplicateResourceException("validation.email_exists");
+            throw new ApiException("validation.email_exists", 400);
         }
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
-            throw new BadRequestException("validation.passwords_do_not_match");
+            throw new ApiException("validation.passwords_do_not_match", 400);
         }
     }
 
     private void validateSellerRegistration(SellerRegisterRequestDTO dto) {
         if (userRepository.existsByEmailIgnoreCase(dto.getEmail())) {
-            throw new DuplicateResourceException("validation.email_exists");
+            throw new ApiException("validation.email_exists", 400);
         }
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
-            throw new BadRequestException("validation.passwords_do_not_match");
+            throw new ApiException("validation.passwords_do_not_match", 400);
         }
         if (sellerRepository.existsByGstIgnoreCase(dto.getGst())) {
-            throw new DuplicateResourceException("validation.gst_exists");
+            throw new ApiException("validation.gst_exists", 400);
         }
         if (sellerRepository.existsByCompanyNameIgnoreCase(dto.getCompanyName())) {
-            throw new DuplicateResourceException("validation.company_name_exists");
+            throw new ApiException("validation.company_name_exists", 400);
         }
     }
 
@@ -205,7 +196,7 @@ public class AuthServiceImpl implements AuthService {
 
             CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
             User entity = userRepository.findById(user.getUserId())
-                    .orElseThrow(() -> new ResourceNotFoundException("auth.user_not_found"));
+                    .orElseThrow(() -> new ApiException("auth.user_not_found", 400));
             entity.setInvalidAttemptCount(0);
             userRepository.save(entity);
 
@@ -239,7 +230,7 @@ public class AuthServiceImpl implements AuthService {
                 }
                 userRepository.save(user);
             });
-            throw new BadCredentialsException("Invalid email or password.");
+            throw new ApiException("Invalid email or password.", 401);
         }
     }
 
@@ -270,7 +261,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (!accessTokenHandled && !refreshTokenHandled) {
-            throw new ApiException("auth.token_required", HttpStatus.UNAUTHORIZED);
+            throw new ApiException("auth.token_required", 403);
         }
 
         return new ApiResponseDTO(msg("auth.logout_success"));
@@ -279,10 +270,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponseDTO refreshAccessToken(String refreshTokenValue) {
         if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
-            throw new ApiException("auth.token_required", HttpStatus.UNAUTHORIZED);
+            throw new ApiException("auth.token_required", 403);
         }
         if (!jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
-            throw new ApiException("auth.invalid_refresh_token", HttpStatus.UNAUTHORIZED);
+            throw new ApiException("auth.invalid_refresh_token", 403);
         }
 
         Claims claims = jwtUtil.extractAllClaims(refreshTokenValue);
@@ -291,23 +282,23 @@ public class AuthServiceImpl implements AuthService {
         String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
 
         if (userId == null || email == null || refreshId == null) {
-            throw new ApiException("auth.invalid_refresh_token", HttpStatus.UNAUTHORIZED);
+            throw new ApiException("auth.invalid_refresh_token", 403);
         }
 
         RefreshToken existingToken = refreshTokenRepository.findByTokenIdAndRevokedFalse(refreshId)
-                .orElseThrow(() -> new ApiException("auth.refresh_token_revoked", HttpStatus.UNAUTHORIZED));
+                .orElseThrow(() -> new ApiException("auth.refresh_token_revoked", 403));
 
         if (existingToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             existingToken.setRevoked(true);
             refreshTokenRepository.save(existingToken);
-            throw new ApiException("auth.refresh_token_expired", HttpStatus.UNAUTHORIZED);
+            throw new ApiException("auth.refresh_token_expired", 403);
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("auth.user_not_found"));
+                .orElseThrow(() -> new ApiException("auth.user_not_found", 400));
 
         if (!email.equalsIgnoreCase(user.getEmail())) {
-            throw new ApiException("auth.invalid_refresh_token", HttpStatus.UNAUTHORIZED);
+            throw new ApiException("auth.invalid_refresh_token", 403);
         }
 
         existingToken.setRevoked(true);
@@ -336,10 +327,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public ApiResponseDTO requestPasswordReset(ForgotPasswordRequestDTO dto) {
         User user = userRepository.findByEmailIgnoreCase(dto.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("auth.user_not_found"));
+                .orElseThrow(() -> new ApiException("auth.user_not_found", 400));
 
         if (!user.isActive()) {
-            throw new BadRequestException("validation.account_not_activated");
+            throw new ApiException("validation.account_not_activated", 400);
         }
 
         long pwdUpdatedAtMillis = user.getPasswordUpdateDate() == null
@@ -355,12 +346,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public ApiResponseDTO resetPassword(ResetPasswordRequestDTO dto) {
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
-            throw new BadRequestException("validation.passwords_do_not_match");
+            throw new ApiException("validation.passwords_do_not_match", 400);
         }
 
         String token = dto.getToken();
         if (!jwtUtil.isPasswordResetTokenValid(token)) {
-            throw new InvalidTokenException("validation.invalid_reset_token");
+            throw new ApiException("validation.invalid_reset_token", 400);
         }
 
         Claims claims = jwtUtil.extractAllClaims(token);
@@ -368,17 +359,17 @@ public class AuthServiceImpl implements AuthService {
         String email = claims.getSubject();
         Long tokenPwdUpdatedAt = claims.get("pwdUpdatedAt", Long.class);
         if (userId == null || email == null || tokenPwdUpdatedAt == null) {
-            throw new InvalidTokenException("validation.invalid_reset_token");
+            throw new ApiException("validation.invalid_reset_token", 400);
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("auth.user_not_found"));
+                .orElseThrow(() -> new ApiException("auth.user_not_found", 400));
 
         if (!email.equalsIgnoreCase(user.getEmail())) {
-            throw new InvalidTokenException("validation.invalid_reset_token");
+            throw new ApiException("validation.invalid_reset_token", 400);
         }
         if (!user.isActive()) {
-            throw new BadRequestException("validation.account_not_activated");
+            throw new ApiException("validation.account_not_activated", 400);
         }
 
         long currentPwdUpdatedAtMillis = user.getPasswordUpdateDate() == null
@@ -386,7 +377,7 @@ public class AuthServiceImpl implements AuthService {
                 : user.getPasswordUpdateDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
         if (currentPwdUpdatedAtMillis != tokenPwdUpdatedAt.longValue()) {
-            throw new InvalidTokenException("validation.reset_token_used");
+            throw new ApiException("validation.reset_token_used", 0);
         }
 
         user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
@@ -439,7 +430,7 @@ public class AuthServiceImpl implements AuthService {
     private void assignRole(User user, RoleEnums roleEnum) {
 
         Role role = roleRepository.findByAuthority(roleEnum)
-                .orElseThrow(() -> new ResourceNotFoundException("error.role_not_found"));
+                .orElseThrow(() -> new ApiException("error.role_not_found", 400));
 
         UserRole userRole = new UserRole(
                 new UserRoleId(user.getId(), role.getId()),
@@ -471,18 +462,16 @@ public class AuthServiceImpl implements AuthService {
         sellerRepository.save(seller);
     }
 
-    private void saveAddress(User user, String addressLine, String city,
-            String state, String country, String zipCode,
-            AddressLabelEnums label) {
+    private void saveAddress(User user, AddressDTO dto) {
 
         Address address = new Address();
 
-        address.setAddressLine(addressLine);
-        address.setCity(city);
-        address.setState(state);
-        address.setCountry(country);
-        address.setZipCode(zipCode);
-        address.setLabel(label);
+        address.setAddressLine(dto.getAddressLine());
+        address.setCity(dto.getCity());
+        address.setState(dto.getState());
+        address.setCountry(dto.getCountry());
+        address.setZipCode(dto.getZipCode());
+        address.setLabel(dto.getLabel());
         address.setUser(user);
 
         addressRepository.save(address);

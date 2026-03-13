@@ -1,16 +1,14 @@
 package com.example.ecommerceproject.exception;
 
-import org.springframework.http.HttpStatus;
-
 public class ApiException extends RuntimeException{
-    private final HttpStatus status;
+    private final Integer status;
 
-    public ApiException(String message, HttpStatus status){
+    public ApiException(String message, Integer status){
         super(message);
         this.status = status;
     }
 
-    public HttpStatus getStatus(){
+    public Integer getStatus(){
         return status;
     }
 }

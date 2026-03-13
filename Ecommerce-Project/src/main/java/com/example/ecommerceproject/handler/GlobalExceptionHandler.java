@@ -11,14 +11,11 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.CredentialsExpiredException;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
 import com.example.ecommerceproject.dto.ValidationErrorResponseDTO;
 import com.example.ecommerceproject.exception.ApiException;
 
@@ -31,42 +28,20 @@ public class GlobalExceptionHandler {
     private final MessageSource messageSource;
 
     @ExceptionHandler(ApiException.class)
-    public ResponseEntity<?> handleApiException(ApiException apiException) {
+    public ResponseEntity<Map<String, Object>> handleApiException(ApiException apiException) {
         Locale locale = LocaleContextHolder.getLocale();
         String message = messageSource.getMessage(apiException.getMessage(), null, apiException.getMessage(), locale);
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("message", message);
-        response.put("status", apiException.getStatus().value());
-        return new ResponseEntity<>(response, apiException.getStatus());
-    }
-
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
-        Locale locale = LocaleContextHolder.getLocale();
-        String message = messageSource.getMessage("auth.invalid_credentials", null, locale);
-        Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now());
-        response.put("message", message);
-        response.put("status", HttpStatus.UNAUTHORIZED.value());
-        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        response.put("status", apiException.getStatus());
+        return new ResponseEntity<>(response, HttpStatus.valueOf(apiException.getStatus()));
     }
 
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<Map<String, Object>> handleLocked(LockedException ex) {
         Locale locale = LocaleContextHolder.getLocale();
         String message = messageSource.getMessage("auth.account_locked", null, locale);
-        Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now());
-        response.put("message", message);
-        response.put("status", HttpStatus.UNAUTHORIZED.value());
-        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
-    }
-
-    @ExceptionHandler(DisabledException.class)
-    public ResponseEntity<Map<String, Object>> handleDisabled(DisabledException ex) {
-        Locale locale = LocaleContextHolder.getLocale();
-        String message = messageSource.getMessage("auth.account_not_activated", null, locale);
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("message", message);

@@ -1,6 +1,6 @@
 package com.example.ecommerceproject.enums;
 
-public enum AddressLabelEnums {
+public enum AddressType {
     HOME,
     OFFICE
 }
