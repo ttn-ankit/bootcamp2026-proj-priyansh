@@ -6,6 +6,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import com.example.ecommerceproject.constants.MessageKeys;
 import com.example.ecommerceproject.entity.Role;
 import com.example.ecommerceproject.entity.User;
 import com.example.ecommerceproject.entity.UserRole;
@@ -29,16 +30,16 @@ public class AdminBootstrap implements CommandLineRunner {
     @Override
     public void run(String... args) {
 
-        if(userRepository.existsByEmailIgnoreCase("admin@ecommerce.com")){
+        if(userRepository.existsByEmailIgnoreCase(MessageKeys.PROTECTED_ADMIN_EMAIL)){
             return;
         }
 
         User admin = new User();
 
-        admin.setEmail("admin@ecommerce.com");
-        admin.setFirstName("System");
-        admin.setLastName("Admin");
-        admin.setPasswordHash(passwordEncoder.encode("Admin@123"));
+        admin.setEmail(MessageKeys.PROTECTED_ADMIN_EMAIL);
+        admin.setFirstName(MessageKeys.PROTECTED_ADMIN_FIRST_NAME);
+        admin.setLastName(MessageKeys.PROTECTED_ADMIN_LAST_NAME);
+        admin.setPasswordHash(passwordEncoder.encode(MessageKeys.PROTECTED_ADMIN_PASSWORD));
         admin.setPasswordUpdateDate(LocalDateTime.now());
 
         admin.setActive(true);
@@ -58,7 +59,5 @@ public class AdminBootstrap implements CommandLineRunner {
         );
 
         userRoleRepository.save(userRole);
-
-        System.out.println("Default admin created.");
     }
 }

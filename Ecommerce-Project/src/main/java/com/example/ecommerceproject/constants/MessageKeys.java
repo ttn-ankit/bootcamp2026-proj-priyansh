@@ -1,9 +1,5 @@
 package com.example.ecommerceproject.constants;
 
-/**
- * Global constants class for all message keys used in the application.
- * All messages are retrieved from messages.properties file.
- */
 public final class MessageKeys {
 
     private MessageKeys() {
@@ -11,6 +7,9 @@ public final class MessageKeys {
     }
 
     // Authentication Messages
+    public static final String PROTECTED_ADMIN_FIRST_NAME = "System";
+    public static final String PROTECTED_ADMIN_LAST_NAME = "Admin";
+    public static final String PROTECTED_ADMIN_PASSWORD = "Admin@123";
     public static final String PROTECTED_ADMIN_EMAIL = "admin@ecommerce.com";
     public static final String AUTH_INVALID_CREDENTIALS = "auth.invalid_credentials";
     public static final String AUTH_ACCOUNT_LOCKED = "auth.account_locked";
