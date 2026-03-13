@@ -31,10 +31,9 @@ public class SellerRegisterRequestDTO extends BaseRegistrationDTO{
     String companyContact;
 
     @Schema(
-        description = "Complete address line including house number, street, and locality",
-        example = "221B Baker Street",
+        description = "Address",
         requiredMode = Schema.RequiredMode.REQUIRED
     )
-    @NotNull(message = "{validation.address_line_required}")
+    @NotNull(message = "{validation.address_required}")
     AddressDTO address;
 }

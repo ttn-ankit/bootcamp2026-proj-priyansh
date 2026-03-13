@@ -79,24 +79,29 @@ public class SellerServiceImpl implements SellerService {
                 .build();
     }
 
-    @Override
-    @Transactional
-    public ApiResponseDTO updateProfile(Long userId, SellerProfileUpdateRequestDTO dto) {
-        Seller seller = getActiveSellerByUserId(userId);
-        User user = seller.getUser();
+@Transactional
+public ApiResponseDTO updateProfile(Long userId, SellerProfileUpdateRequestDTO dto) {
 
+    Seller seller = getActiveSellerByUserId(userId);
+    User user = seller.getUser();
+
+    if (dto.getFirstName() != null)
         user.setFirstName(dto.getFirstName());
+
+    if (dto.getMiddleName() != null)
         user.setMiddleName(dto.getMiddleName());
+
+    if (dto.getLastName() != null)
         user.setLastName(dto.getLastName());
 
+    if (dto.getCompanyName() != null)
         seller.setCompanyName(dto.getCompanyName());
+
+    if (dto.getCompanyContact() != null)
         seller.setCompanyContact(dto.getCompanyContact());
 
-        userRepository.save(user);
-        sellerRepository.save(seller);
-
-        return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_PROFILE_UPDATED), 200);
-    }
+    return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_PROFILE_UPDATED), 200);
+}
 
     @Override
     @Transactional

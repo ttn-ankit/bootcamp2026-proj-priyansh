@@ -18,7 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/seller/profile")
+@RequestMapping("/api/seller")
 @PreAuthorize("hasRole('SELLER')")
 @RequiredArgsConstructor
 @Tag(name = "Seller Profile Management", description = "APIs for Sellers to manage their profile, password, and addresses")
@@ -34,7 +34,7 @@ public class SellerProfileController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SELLER role and active account"),
             @ApiResponse(responseCode = "404", description = "Seller profile not found")
     })
-    @GetMapping
+    @GetMapping("/profile")
     public ResponseEntity<SellerProfileResponseDTO> getMyProfile(
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(sellerService.getProfile(userDetails.getUserId()));
@@ -47,7 +47,7 @@ public class SellerProfileController {
             @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid token"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SELLER role and active account")
     })
-    @PatchMapping
+    @PatchMapping("/update")
     public ResponseEntity<ApiResponseDTO> updateMyProfile(
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody SellerProfileUpdateRequestDTO dto) {

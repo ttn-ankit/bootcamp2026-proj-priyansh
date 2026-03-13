@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -169,19 +170,20 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(noRollbackFor = ApiException.class)
+    @Transactional(noRollbackFor = {ApiException.class, BadCredentialsException.class})
     public LoginResponseDTO login(LoginRequestDTO dto) {
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(dto.getEmail(), dto.getPassword()));
+                    new UsernamePasswordAuthenticationToken(dto.getEmail().toLowerCase(), dto.getPassword()));
 
-            CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
-            User entity = userRepository.findById(user.getUserId())
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            
+            User entity = userRepository.findById(userDetails.getUserId())
                     .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 404));
             entity.setInvalidAttemptCount(0);
             userRepository.save(entity);
 
-            String accessToken = jwtUtil.generateToken(user.getUserId(), user.getUsername(), user.getAuthorities());
+            String accessToken = jwtUtil.generateToken(userDetails.getUserId(), userDetails.getUsername(), userDetails.getAuthorities());
             String accessTokenJti = jwtUtil.extractJti(accessToken);
 
             RefreshToken refreshToken = new RefreshToken();
@@ -193,15 +195,15 @@ public class AuthServiceImpl implements AuthService {
             refreshToken.setAccessTokenExpiry(LocalDateTime.now().plusMinutes(15));
             refreshTokenRepository.save(refreshToken);
 
-            String refreshTokenValue = jwtUtil.generateRefreshToken(user.getUserId(), user.getUsername(), refreshId);
+            String refreshTokenValue = jwtUtil.generateRefreshToken(userDetails.getUserId(), userDetails.getUsername(), refreshId);
 
             return new LoginResponseDTO(
                     accessToken,
                     refreshTokenValue,
-                    user.getAuthorities().stream().toList(),
-                    user.getUsername(),
+                    userDetails.getAuthorities().stream().toList(),
+                    userDetails.getUsername(),
                     messageService.get(MessageKeys.AUTH_LOGIN_SUCCESS));
-        } catch (ApiException e) {
+        } catch (BadCredentialsException e) {
             userRepository.findByEmailAndIsDeletedFalse(dto.getEmail()).ifPresent(user -> {
                 if (isProtectedAdmin(user)) {
                     return;
@@ -214,7 +216,7 @@ public class AuthServiceImpl implements AuthService {
                 }
                 userRepository.save(user);
             });
-            throw new ApiException(MessageKeys.AUTH_INVALID_CREDENTIALS, 401);
+            throw e;
         }
     }
 
@@ -289,7 +291,7 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException(MessageKeys.AUTH_REFRESH_TOKEN_EXPIRED, 401);
         }
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findWithRolesByEmailAndIsDeletedFalse(email)
                 .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 404));
 
         if (!email.equalsIgnoreCase(user.getEmail())) {
@@ -403,7 +405,7 @@ public class AuthServiceImpl implements AuthService {
 
         User user = new User();
 
-        user.setEmail(dto.getEmail());
+        user.setEmail(dto.getEmail().toLowerCase());
         user.setFirstName(dto.getFirstName());
         user.setMiddleName(dto.getMiddleName());
         user.setLastName(dto.getLastName());
