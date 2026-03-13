@@ -11,4 +11,5 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = PRIVATE)
 public class ApiResponseDTO {
     String message;
+    int status;
 }

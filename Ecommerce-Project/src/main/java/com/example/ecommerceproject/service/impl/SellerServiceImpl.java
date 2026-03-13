@@ -11,7 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.ecommerceproject.dto.AddressUpdateRequestDTO;
+import com.example.ecommerceproject.dto.AddressPartialUpdateRequestDTO;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
 import com.example.ecommerceproject.dto.SellerPasswordUpdateRequestDTO;
 import com.example.ecommerceproject.dto.SellerProfileResponseDTO;
@@ -28,7 +28,6 @@ import com.example.ecommerceproject.service.MessageService;
 import com.example.ecommerceproject.service.SellerService;
 import com.example.ecommerceproject.service.UserSessionService;
 import com.example.ecommerceproject.util.MessageKeys;
-import com.example.ecommerceproject.enums.AddressTypeEnums;
 import com.example.ecommerceproject.enums.AddressType;
 
 import lombok.RequiredArgsConstructor;
@@ -56,7 +55,7 @@ public class SellerServiceImpl implements SellerService {
 
         Seller seller = getActiveSellerByUserId(userId);
         User user = seller.getUser();
-        List<Address> addresses = addressRepository.findByUserAndAddressType(user, AddressTypeEnums.SELLER_BUSINESS);
+        List<Address> addresses = addressRepository.findByUser(user);
         Address address = addresses.isEmpty() ? new Address() : addresses.get(0);
 
         String imageUrl = computeImageUrl(user.getId());
@@ -96,7 +95,7 @@ public class SellerServiceImpl implements SellerService {
         userRepository.save(user);
         sellerRepository.save(seller);
 
-        return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_PROFILE_UPDATED));
+        return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_PROFILE_UPDATED), 200);
     }
 
     @Override
@@ -116,27 +115,21 @@ public class SellerServiceImpl implements SellerService {
 
         emailService.sendPasswordChangedEmail(user.getEmail());
 
-        return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_PASSWORD_UPDATED));
+        return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_PASSWORD_UPDATED), 200);
     }
 
     @Override
     @Transactional
-    public ApiResponseDTO updateAddress(Long userId, Long addressId, AddressUpdateRequestDTO dto) {
+    public ApiResponseDTO updateAddress(Long userId, Long addressId, AddressPartialUpdateRequestDTO dto) {
         Seller seller = getActiveSellerByUserId(userId);
         User user = seller.getUser();
         Address address = addressRepository.findById(addressId)
         .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.ERROR_ADDRESS_NOT_FOUND), 400));
 
-        // Security checks: Ensure address belongs to seller AND is a business address
         if (!address.getUser().getId().equals(user.getId())) {
-            throw new ApiException(messageService.get(MessageKeys.AUTH_ACCESS_DENIED), 400);
+            throw new ApiException(messageService.get(MessageKeys.AUTH_ACCESS_DENIED), 403);
         }
         
-        if (!AddressTypeEnums.SELLER_BUSINESS.equals(address.getAddressType())) {
-            throw new ApiException(messageService.get(MessageKeys.AUTH_ACCESS_DENIED), 400);
-        }
-
-        // Partial update: Only update fields that are provided (not null/empty)
         if (dto.getAddressLine() != null && !dto.getAddressLine().trim().isEmpty()) {
             address.setAddressLine(dto.getAddressLine().trim());
         }
@@ -159,7 +152,7 @@ public class SellerServiceImpl implements SellerService {
 
         addressRepository.save(address);
 
-        return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_ADDRESS_UPDATED));
+        return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_ADDRESS_UPDATED), 200);
     }
 
     private Seller getActiveSellerByUserId(Long userId) {

@@ -11,22 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @Schema(description = "Seller registration request")
 @FieldDefaults(level = PRIVATE)
-public class SellerRegisterRequestDTO {
-
-    @Email(message = "{validation.email_invalid}")
-    @NotBlank(message = "{validation.email_required}")
-    @Schema(example = "seller@example.com", description = "Seller email address")
-    String email;
-
-    @NotBlank(message = "{validation.password_required}")
-    @Size(min = 8, max = 25, message = "{validation.password_length}")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,25}$", message = "{validation.password_strength}")
-    @Schema(example = "Password@123", description = "Seller account password")
-    String password;
-
-    @NotBlank(message = "{validation.confirm_password_required}")
-    @Schema(example = "Password@123", description = "Confirm password")
-    String confirmPassword;
+public class SellerRegisterRequestDTO extends BaseRegistrationDTO{
 
     @NotBlank(message = "{validation.gst_required}")
     @Pattern(
@@ -45,20 +30,11 @@ public class SellerRegisterRequestDTO {
     @Schema(example = "9876543210", description = "Company contact number")
     String companyContact;
 
-    @NotBlank(message = "{validation.first_name_required}")
-    @Schema(example = "Priyansh", description = "Seller first name")
-    String firstName;
-
-    @Schema(example = "Kumar")
-    @Size(max = 30)
-    String middleName;
-
-    @NotBlank(message = "Last name is required")
-    @Schema(example = "Awasthi", description = "Seller last name")
-    String lastName;
-
-    @NotNull
-    @Schema(description = "Address")
+    @Schema(
+        description = "Complete address line including house number, street, and locality",
+        example = "221B Baker Street",
+        requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    @NotNull(message = "{validation.address_line_required}")
     AddressDTO address;
-
 }

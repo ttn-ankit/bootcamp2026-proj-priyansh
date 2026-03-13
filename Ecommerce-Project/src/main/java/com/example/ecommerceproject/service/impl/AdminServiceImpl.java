@@ -5,6 +5,7 @@ import static lombok.AccessLevel.PRIVATE;
 import java.util.List;
 
 import org.springframework.data.domain.Pageable;
+import com.example.ecommerceproject.exception.ApiException;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,7 +20,6 @@ import com.example.ecommerceproject.entity.Address;
 import com.example.ecommerceproject.entity.Customer;
 import com.example.ecommerceproject.entity.Seller;
 import com.example.ecommerceproject.entity.User;
-import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.repository.AddressRepository;
 import com.example.ecommerceproject.repository.CustomerRepository;
 import com.example.ecommerceproject.repository.SellerRepository;
@@ -94,7 +94,7 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public ApiResponseDTO activateCustomer(Long customerId) {
         Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND, 400));
+                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND, 404));
 
         User user = customer.getUser();
         validateUserNotDeleted(user);
@@ -107,14 +107,14 @@ public class AdminServiceImpl implements AdminService {
         userRepository.save(user);
         emailService.sendAccountActivationEmail(user.getEmail());
 
-        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_CUSTOMER_ACTIVATED));
+        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_CUSTOMER_ACTIVATED), 200);
     }
 
     @Override
     @Transactional
     public ApiResponseDTO deactivateCustomer(Long customerId) {
         Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND, 400));
+                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND, 404));
         User user = customer.getUser();
 
         validateUserNotDeleted(user);
@@ -131,14 +131,14 @@ public class AdminServiceImpl implements AdminService {
 
         emailService.sendAccountDeactivationEmail(user.getEmail());
 
-        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_CUSTOMER_DEACTIVATED));
+        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_CUSTOMER_DEACTIVATED), 200);
     }
 
     @Override
     @Transactional
     public ApiResponseDTO activateSeller(Long sellerId) {
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_SELLER_NOT_FOUND,400));
+                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_SELLER_NOT_FOUND, 404));
         User user = seller.getUser();
 
         validateUserNotDeleted(user);
@@ -151,14 +151,14 @@ public class AdminServiceImpl implements AdminService {
         userRepository.save(user);
         emailService.sendAccountActivationEmail(user.getEmail());
 
-        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_SELLER_ACTIVATED));
+        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_SELLER_ACTIVATED), 200);
     }
 
     @Override
     @Transactional
     public ApiResponseDTO deactivateSeller(Long sellerId) {
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_SELLER_NOT_FOUND, 400));
+                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_SELLER_NOT_FOUND, 404));
         User user = seller.getUser();
 
         validateUserNotDeleted(user);
@@ -175,7 +175,7 @@ public class AdminServiceImpl implements AdminService {
 
         emailService.sendAccountDeactivationEmail(user.getEmail());
 
-        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_SELLER_DEACTIVATED));
+        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_SELLER_DEACTIVATED), 200);
     }
 
     private void validateNotProtectedAdmin(User user) {

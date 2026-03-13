@@ -14,16 +14,14 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @Setter
 @FieldDefaults(level = PRIVATE)
-@Schema(description = "Customer registration request")
-public class RegisterRequestDTO {
+public abstract class BaseRegistrationDTO {
 
     @Schema(example = "user@example.com", description = "Email address")
     @NotBlank(message = "{validation.email_required}")
     @Email(message = "{validation.email_invalid}")
     String email;
 
-    @Schema(example = "Password@123", description = "User password")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,25}$", message = "{validation.password_strength}")
+    @Schema(example = "Password@123", description = "Password")
     @NotBlank(message = "{validation.password_required}")
     @Pattern(
         regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,25}$",
@@ -47,9 +45,4 @@ public class RegisterRequestDTO {
     @NotBlank(message = "{validation.last_name_required}")
     @Size(max = 30)
     String lastName;
-
-    @Schema(example = "9876543210", description = "Customer phone number")
-    @NotBlank(message = "{validation.phone_invalid}")
-    @Pattern(regexp = "^[0-9]{10}$", message = "{validation.phone_invalid}")
-    String phoneNumber;
 }

@@ -49,6 +49,7 @@ public final class MessageKeys {
     public static final String VALIDATION_RESET_TOKEN_USED = "validation.reset_token_used";
     public static final String VALIDATION_INVALID_EMAIL = "validation.invalid_email";
     public static final String VALIDATION_FIELD_REQUIRED = "validation.field_required";
+    public static final String VALIDATION_INVALID_SELLER_ADDRESS_LABEL = "validation.invalid_seller_address_label";
 
     // Error Messages
     public static final String ERROR_INTERNAL_SERVER = "error.internal_server";

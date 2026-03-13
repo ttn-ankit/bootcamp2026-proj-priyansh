@@ -80,7 +80,7 @@ public class SellerProfileController {
     public ResponseEntity<ApiResponseDTO> updateMyAddress(
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails,
             @Parameter(description = "ID of the address to update", required = true) @PathVariable Long addressId,
-            @Valid @RequestBody AddressUpdateRequestDTO dto) {
+            @Valid @RequestBody AddressPartialUpdateRequestDTO dto) {
         return ResponseEntity.ok(sellerService.updateAddress(userDetails.getUserId(), addressId, dto));
     }
 }

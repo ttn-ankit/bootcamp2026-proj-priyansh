@@ -12,6 +12,7 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @Setter
 @FieldDefaults(level = PRIVATE)
+@Schema(description = "Reset password request")
 public class ResetPasswordRequestDTO {
 
     @Schema(description = "Password reset token from email link")
@@ -29,4 +30,3 @@ public class ResetPasswordRequestDTO {
     @NotBlank(message = "{validation.confirm_password_required}")
     String confirmPassword;
 }
-

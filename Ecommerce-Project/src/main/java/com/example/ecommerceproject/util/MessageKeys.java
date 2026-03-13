@@ -60,6 +60,7 @@ public final class MessageKeys {
     public static final String VALIDATION_CUSTOMER_ID_POSITIVE = "validation.customer_id_positive";
     public static final String VALIDATION_SELLER_ID_POSITIVE = "validation.seller_id_positive";
     public static final String VALIDATION_INVALID_SELLER_ADDRESS_LABEL = "validation.invalid_seller_address_label";
+    public static final String VALIDATION_INVALID_CUSTOMER_ADDRESS_LABEL = "validation.invalid_customer_address_label";
 
     public static final String ERROR_INTERNAL_SERVER = "error.internal_server";
     public static final String ERROR_RESOURCE_NOT_FOUND = "error.resource_not_found";

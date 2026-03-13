@@ -1,6 +1,6 @@
 package com.example.ecommerceproject.service;
 
-import com.example.ecommerceproject.dto.AddressUpdateRequestDTO;
+import com.example.ecommerceproject.dto.AddressPartialUpdateRequestDTO;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
 import com.example.ecommerceproject.dto.SellerPasswordUpdateRequestDTO;
 import com.example.ecommerceproject.dto.SellerProfileResponseDTO;
@@ -10,5 +10,5 @@ public interface SellerService {
     SellerProfileResponseDTO getProfile(Long userId);
     ApiResponseDTO updateProfile(Long userId, SellerProfileUpdateRequestDTO dto);
     ApiResponseDTO updatePassword(Long userId, SellerPasswordUpdateRequestDTO dto);
-    ApiResponseDTO updateAddress(Long userId, Long addressId, AddressUpdateRequestDTO dto);
+    ApiResponseDTO updateAddress(Long userId, Long addressId, AddressPartialUpdateRequestDTO dto);
 }

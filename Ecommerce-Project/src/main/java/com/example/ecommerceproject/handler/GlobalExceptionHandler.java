@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.example.ecommerceproject.dto.ValidationErrorResponseDTO;
 import com.example.ecommerceproject.exception.ApiException;
-import com.example.ecommerceproject.util.MessageService;
+import com.example.ecommerceproject.service.MessageService;
 import com.example.ecommerceproject.constants.MessageKeys;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<Map<String, Object>> handleApiException(ApiException apiException) {
-        String message = messageService.getMessage(apiException.getMessage());
+        String message = messageService.get(apiException.getMessage());
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("message", message);
@@ -42,7 +42,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<Map<String, Object>> handleLocked(LockedException ex) {
-        String message = messageService.getMessage(MessageKeys.AUTH_ACCOUNT_LOCKED);
+        String message = messageService.get(MessageKeys.AUTH_ACCOUNT_LOCKED);
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("message", message);
@@ -52,7 +52,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(CredentialsExpiredException.class)
     public ResponseEntity<Map<String, Object>> handleCredentialsExpired(CredentialsExpiredException ex) {
-        String message = messageService.getMessage(MessageKeys.AUTH_PASSWORD_EXPIRED);
+        String message = messageService.get(MessageKeys.AUTH_PASSWORD_EXPIRED);
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("message", message);
@@ -63,7 +63,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
         Locale locale = LocaleContextHolder.getLocale();
-        String message = messageService.getMessage(MessageKeys.AUTH_ACCESS_DENIED, null, locale);
+        String message = messageService.get(MessageKeys.AUTH_ACCESS_DENIED, null, locale);
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("message", message);
@@ -74,7 +74,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex) {
         Locale locale = LocaleContextHolder.getLocale();
-        String message = messageService.getMessage(MessageKeys.AUTH_AUTHENTICATION_REQUIRED, null, locale);
+        String message = messageService.get(MessageKeys.AUTH_AUTHENTICATION_REQUIRED, null, locale);
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("message", message);
@@ -84,7 +84,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ValidationErrorResponseDTO> handleValidationException(MethodArgumentNotValidException ex) {
-        String message = messageService.getMessage(MessageKeys.VALIDATION_FAILED);
+        String message = messageService.get(MessageKeys.VALIDATION_FAILED);
         List<ValidationErrorResponseDTO.FieldErrorDTO> errors = ex.getBindingResult().getFieldErrors()
             .stream()
             .map(error -> new ValidationErrorResponseDTO.FieldErrorDTO(error.getField(), error.getDefaultMessage()))
@@ -99,7 +99,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGeneric(Exception ex) {
-        String message = messageService.getMessage(MessageKeys.ERROR_INTERNAL_SERVER);
+        String message = messageService.get(MessageKeys.ERROR_INTERNAL_SERVER);
         Map<String, Object> response = new HashMap<>();
         response.put("message", message);
         response.put("status", 500);
@@ -109,7 +109,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ValidationErrorResponseDTO> handleConstraintViolationException(ConstraintViolationException ex) {
         Locale locale = LocaleContextHolder.getLocale();
-        String message = messageService.getMessage("validation.failed", null, locale);
+        String message = messageService.get("validation.failed", null, locale);
         List<ValidationErrorResponseDTO.FieldErrorDTO> errors = ex.getConstraintViolations()
             .stream()
             .map(violation -> {
