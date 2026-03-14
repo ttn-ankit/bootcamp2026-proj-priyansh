@@ -34,12 +34,8 @@ public class Address {
     String zipCode;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    AddressType label;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "address_type", nullable = false)
-    AddressType addressType;
+    AddressType label;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")

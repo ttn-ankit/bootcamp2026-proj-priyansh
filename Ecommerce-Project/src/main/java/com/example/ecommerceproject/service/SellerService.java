@@ -10,5 +10,5 @@ public interface SellerService {
     SellerProfileResponseDTO getProfile(Long userId);
     ApiResponseDTO updateProfile(Long userId, SellerProfileUpdateRequestDTO dto);
     ApiResponseDTO updatePassword(Long userId, SellerPasswordUpdateRequestDTO dto);
-    ApiResponseDTO updateAddress(Long userId, Long addressId, AddressPartialUpdateRequestDTO dto);
+    ApiResponseDTO updateAddress(Long userId, AddressPartialUpdateRequestDTO dto);
 }

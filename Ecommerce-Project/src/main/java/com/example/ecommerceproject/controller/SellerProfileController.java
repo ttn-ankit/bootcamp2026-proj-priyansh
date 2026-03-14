@@ -68,19 +68,18 @@ public class SellerProfileController {
         return ResponseEntity.ok(sellerService.updatePassword(userDetails.getUserId(), dto));
     }
 
-    @Operation(summary = "Update Address", description = "Updates an existing address belonging to the logged-in seller.")
+    @Operation(summary = "Update Address", description = "Updates the seller's address (sellers can only have one address).")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Address updated successfully"),
-            @ApiResponse(responseCode = "400", description = "Validation failed or attempting to update an address that does not belong to the user"),
+            @ApiResponse(responseCode = "400", description = "Validation failed"),
             @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid token"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SELLER role and active account"),
             @ApiResponse(responseCode = "404", description = "Address not found")
     })
-    @PatchMapping("/address/{addressId}")
+    @PatchMapping("/address")
     public ResponseEntity<ApiResponseDTO> updateMyAddress(
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Parameter(description = "ID of the address to update", required = true) @PathVariable Long addressId,
             @Valid @RequestBody AddressPartialUpdateRequestDTO dto) {
-        return ResponseEntity.ok(sellerService.updateAddress(userDetails.getUserId(), addressId, dto));
+        return ResponseEntity.ok(sellerService.updateAddress(userDetails.getUserId(), dto));
     }
 }

@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.example.ecommerceproject.dto.ValidationErrorResponseDTO;
 import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.service.MessageService;
-import com.example.ecommerceproject.constants.MessageKeys;
+import com.example.ecommerceproject.util.MessageKeys;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 

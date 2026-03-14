@@ -125,16 +125,17 @@ public ApiResponseDTO updateProfile(Long userId, SellerProfileUpdateRequestDTO d
 
     @Override
     @Transactional
-    public ApiResponseDTO updateAddress(Long userId, Long addressId, AddressPartialUpdateRequestDTO dto) {
+    public ApiResponseDTO updateAddress(Long userId, AddressPartialUpdateRequestDTO dto) {
         Seller seller = getActiveSellerByUserId(userId);
         User user = seller.getUser();
-        Address address = addressRepository.findById(addressId)
-        .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.ERROR_ADDRESS_NOT_FOUND), 400));
 
-        if (!address.getUser().getId().equals(user.getId())) {
-            throw new ApiException(messageService.get(MessageKeys.AUTH_ACCESS_DENIED), 403);
+        List<Address> addresses = addressRepository.findByUser(user);
+        if (addresses.isEmpty()) {
+            throw new ApiException(messageService.get(MessageKeys.ERROR_ADDRESS_NOT_FOUND), 404);
         }
-        
+
+        Address address = addresses.get(0);
+
         if (dto.getAddressLine() != null && !dto.getAddressLine().trim().isEmpty()) {
             address.setAddressLine(dto.getAddressLine().trim());
         }

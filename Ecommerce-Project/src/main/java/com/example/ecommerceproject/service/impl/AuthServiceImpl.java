@@ -18,7 +18,7 @@ import com.example.ecommerceproject.service.AuthService;
 import com.example.ecommerceproject.service.EmailService;
 import com.example.ecommerceproject.service.MessageService;
 import com.example.ecommerceproject.util.JwtUtil;
-import com.example.ecommerceproject.constants.MessageKeys;
+import com.example.ecommerceproject.util.MessageKeys;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -89,7 +89,6 @@ public class AuthServiceImpl implements AuthService {
 
         createSeller(user, dto);
 
-        saveAddress(user, dto.getAddress());
         saveAddress(user, dto.getAddress());
 
         emailService.sendSellerRegistrationEmail(user.getEmail());
@@ -476,9 +475,15 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void saveAddress(User user, AddressDTO dto) {
+        // Check if seller already has an address (sellers can only have one)
+        long existingAddressCount = addressRepository.countByUser(user);
+        if (existingAddressCount > 0) {
+            throw new ApiException(MessageKeys.VALIDATION_SELLER_SINGLE_ADDRESS, 400);
+        }
 
         Address address = new Address();
 
+        address.setUser(user);
         address.setAddressLine(dto.getAddressLine());
         address.setCity(dto.getCity());
         address.setState(dto.getState());

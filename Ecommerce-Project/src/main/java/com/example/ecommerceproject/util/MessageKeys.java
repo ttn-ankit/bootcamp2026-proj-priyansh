@@ -5,6 +5,9 @@ public final class MessageKeys {
     private MessageKeys() {
     }
 
+    public static final String PROTECTED_ADMIN_FIRST_NAME = "System";
+    public static final String PROTECTED_ADMIN_LAST_NAME = "Admin";
+    public static final String PROTECTED_ADMIN_PASSWORD = "Admin@123";
     public static final String PROTECTED_ADMIN_EMAIL = "admin@ecommerce.com";
     public static final String AUTH_INVALID_CREDENTIALS = "auth.invalid_credentials";
     public static final String AUTH_ACCOUNT_LOCKED = "auth.account_locked";
@@ -53,6 +56,7 @@ public final class MessageKeys {
     public static final String VALIDATION_USER_ALREADY_DEACTIVATED = "validation.user_already_deactivated";
     public static final String VALIDATION_USER_ALREADY_ACTIVATED = "validation.user_already_activated";
     
+    
     // Admin Controller Validation Messages
     public static final String VALIDATION_PAGE_OFFSET_NEGATIVE = "validation.page_offset_negative";
     public static final String VALIDATION_PAGE_SIZE_MIN = "validation.page_size_min";
@@ -61,6 +65,7 @@ public final class MessageKeys {
     public static final String VALIDATION_SELLER_ID_POSITIVE = "validation.seller_id_positive";
     public static final String VALIDATION_INVALID_SELLER_ADDRESS_LABEL = "validation.invalid_seller_address_label";
     public static final String VALIDATION_INVALID_CUSTOMER_ADDRESS_LABEL = "validation.invalid_customer_address_label";
+    public static final String VALIDATION_SELLER_SINGLE_ADDRESS = "validation.seller_single_address";
 
     public static final String ERROR_INTERNAL_SERVER = "error.internal_server";
     public static final String ERROR_RESOURCE_NOT_FOUND = "error.resource_not_found";
@@ -70,6 +75,7 @@ public final class MessageKeys {
     public static final String ERROR_ADDRESS_NOT_FOUND = "error.address_not_found";
     public static final String ERROR_CUSTOMER_NOT_FOUND = "error.customer_not_found";
     public static final String ERROR_USER_IS_DELETED = "error.user_is_deleted";
+    
 
     public static final String ADMIN_CUSTOMER_ACTIVATED = "admin.customer_activated";
     public static final String ADMIN_CUSTOMER_DEACTIVATED = "admin.customer_deactivated";

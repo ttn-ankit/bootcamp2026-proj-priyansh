@@ -1,8 +1,8 @@
 package com.example.ecommerceproject.service.impl;
 
 import static lombok.AccessLevel.PRIVATE;
-
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
 import com.example.ecommerceproject.exception.ApiException;
@@ -187,6 +187,7 @@ public class AdminServiceImpl implements AdminService {
     private void validateUserNotDeleted(User user) {
         if (user.isDeleted()) {
             throw new ApiException(MessageKeys.ERROR_USER_IS_DELETED, 400);
+
         }
     }
 
@@ -219,13 +220,34 @@ public class AdminServiceImpl implements AdminService {
             return "N/A";
         }
 
-        Address addr = addresses.get(0);
-        return String.format("%s, %s, %s - %s, %s",
-                addr.getAddressLine() != null ? addr.getAddressLine() : "",
-                addr.getCity() != null ? addr.getCity() : "",
-                addr.getState() != null ? addr.getState() : "",
-                addr.getZipCode() != null ? addr.getZipCode() : "",
-                addr.getCountry() != null ? addr.getCountry() : "").replaceAll(", ,", ",").replaceAll(" - ,", ",");
+        Address addr = addresses.get(0); // Get the first (and for sellers, only) address
+        StringBuilder addressBuilder = new StringBuilder();
+        
+        if (addr.getAddressLine() != null && !addr.getAddressLine().trim().isEmpty()) {
+            addressBuilder.append(addr.getAddressLine().trim());
+        }
+        
+        if (addr.getCity() != null && !addr.getCity().trim().isEmpty()) {
+            if (addressBuilder.length() > 0) addressBuilder.append(", ");
+            addressBuilder.append(addr.getCity().trim());
+        }
+        
+        if (addr.getState() != null && !addr.getState().trim().isEmpty()) {
+            if (addressBuilder.length() > 0) addressBuilder.append(", ");
+            addressBuilder.append(addr.getState().trim());
+        }
+        
+        if (addr.getZipCode() != null && !addr.getZipCode().trim().isEmpty()) {
+            if (addressBuilder.length() > 0) addressBuilder.append(" - ");
+            addressBuilder.append(addr.getZipCode().trim());
+        }
+        
+        if (addr.getCountry() != null && !addr.getCountry().trim().isEmpty()) {
+            if (addressBuilder.length() > 0) addressBuilder.append(", ");
+            addressBuilder.append(addr.getCountry().trim());
+        }
+        
+        return addressBuilder.length() > 0 ? addressBuilder.toString() : "N/A";
     }
 
     private String buildFullName(User user) {
