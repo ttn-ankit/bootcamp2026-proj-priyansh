@@ -64,7 +64,7 @@ public class SellerProfileController {
     @PatchMapping("/password")
     public ResponseEntity<ApiResponseDTO> updateMyPassword(
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody SellerPasswordUpdateRequestDTO dto) {
+            @Valid @RequestBody PasswordUpdateRequestDTO dto) {
         return ResponseEntity.ok(sellerService.updatePassword(userDetails.getUserId(), dto));
     }
 

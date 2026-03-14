@@ -11,7 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Data
 @FieldDefaults(level = PRIVATE)
 @Schema(description = "Password update request")
-public class SellerPasswordUpdateRequestDTO {
+public class PasswordUpdateRequestDTO {
 
     @Schema(example = "Password@123", description = "New password")
     @NotBlank(message = "{validation.password_required}")

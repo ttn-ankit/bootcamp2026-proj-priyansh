@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.ecommerceproject.dto.AddressPartialUpdateRequestDTO;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
-import com.example.ecommerceproject.dto.SellerPasswordUpdateRequestDTO;
+import com.example.ecommerceproject.dto.PasswordUpdateRequestDTO;
 import com.example.ecommerceproject.dto.SellerProfileResponseDTO;
 import com.example.ecommerceproject.dto.SellerProfileUpdateRequestDTO;
 import com.example.ecommerceproject.entity.Address;
@@ -38,7 +38,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = PRIVATE)
 public class SellerServiceImpl implements SellerService {
 
-    @Value("${app.image.base-path:uploads}")
+    @Value("${app.image.base-path}")
     String basePath;
 
     final SellerRepository sellerRepository;
@@ -79,34 +79,35 @@ public class SellerServiceImpl implements SellerService {
                 .build();
     }
 
-@Transactional
-public ApiResponseDTO updateProfile(Long userId, SellerProfileUpdateRequestDTO dto) {
+    @Override
+    @Transactional
+    public ApiResponseDTO updateProfile(Long userId, SellerProfileUpdateRequestDTO dto) {
 
-    Seller seller = getActiveSellerByUserId(userId);
-    User user = seller.getUser();
+        Seller seller = getActiveSellerByUserId(userId);
+        User user = seller.getUser();
 
-    if (dto.getFirstName() != null)
-        user.setFirstName(dto.getFirstName());
+        if (dto.getFirstName() != null)
+            user.setFirstName(dto.getFirstName());
 
-    if (dto.getMiddleName() != null)
-        user.setMiddleName(dto.getMiddleName());
+        if (dto.getMiddleName() != null)
+            user.setMiddleName(dto.getMiddleName());
 
-    if (dto.getLastName() != null)
-        user.setLastName(dto.getLastName());
+        if (dto.getLastName() != null)
+            user.setLastName(dto.getLastName());
 
-    if (dto.getCompanyName() != null)
-        seller.setCompanyName(dto.getCompanyName());
+        if (dto.getCompanyName() != null)
+            seller.setCompanyName(dto.getCompanyName());
 
-    if (dto.getCompanyContact() != null)
-        seller.setCompanyContact(dto.getCompanyContact());
+        if (dto.getCompanyContact() != null)
+            seller.setCompanyContact(dto.getCompanyContact());
 
-    return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_PROFILE_UPDATED), 200);
-}
+        return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_PROFILE_UPDATED), 200);
+    }
 
     @Override
     @Transactional
-    public ApiResponseDTO updatePassword(Long userId, SellerPasswordUpdateRequestDTO dto) {
-        if(!dto.getPassword().equals(dto.getConfirmPassword())){
+    public ApiResponseDTO updatePassword(Long userId, PasswordUpdateRequestDTO dto) {
+        if (!dto.getPassword().equals(dto.getConfirmPassword())) {
             throw new ApiException(messageService.get(MessageKeys.VALIDATION_PASSWORD_DO_NOT_MATCH), 400);
         }
 
