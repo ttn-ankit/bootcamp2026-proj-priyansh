@@ -9,10 +9,7 @@ import com.example.ecommerceproject.entity.Address;
 import com.example.ecommerceproject.entity.User;
 
 public interface AddressRepository extends JpaRepository<Address, Long>{
-    List<Address> findByUser(User user);
-    
-    Optional<Address> findByUserAndId(User user, Long id);
-
-
+    List<Address> findByUserAndUserIsDeletedFalse(User user);
+    Optional<Address> findByIdAndIsDeletedFalse(Long id);
     long countByUser(User user);
 }

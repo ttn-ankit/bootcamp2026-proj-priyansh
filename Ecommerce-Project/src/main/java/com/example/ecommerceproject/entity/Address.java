@@ -1,5 +1,7 @@
 package com.example.ecommerceproject.entity;
 
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import com.example.ecommerceproject.enums.AddressType;
 
@@ -12,6 +14,8 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@SQLDelete(sql = "UPDATE users SET is_deleted = true WHERE id=?")
+@SQLRestriction("is_deleted = false")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Address {
     @Id
@@ -36,6 +40,9 @@ public class Address {
     @Enumerated(EnumType.STRING)
     @Column(name = "address_type", nullable = false)
     AddressType label;
+
+    @Column(name = "is_deleted")
+    boolean isDeleted;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")

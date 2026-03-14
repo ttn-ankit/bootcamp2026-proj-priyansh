@@ -113,7 +113,6 @@ public class AuthServiceImpl implements AuthService {
 
         User user = token.getUser();
         user.setActive(true);
-        userRepository.save(user);
         activationTokenRepository.delete(token);
 
         return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_ACTIVATION_SUCCESS), 200);
@@ -180,7 +179,6 @@ public class AuthServiceImpl implements AuthService {
             User entity = userRepository.findById(userDetails.getUserId())
                     .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 404));
             entity.setInvalidAttemptCount(0);
-            userRepository.save(entity);
 
             String accessToken = jwtUtil.generateToken(userDetails.getUserId(), userDetails.getUsername(), userDetails.getAuthorities());
             String accessTokenJti = jwtUtil.extractJti(accessToken);
@@ -213,7 +211,6 @@ public class AuthServiceImpl implements AuthService {
                     user.setLocked(true);
                     emailService.sendAccountLockedEmail(user.getEmail());
                 }
-                userRepository.save(user);
             });
             throw e;
         }
@@ -238,7 +235,6 @@ public class AuthServiceImpl implements AuthService {
                 String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
                 if (refreshId != null) {
                     refreshTokenRepository.findByTokenIdAndRevokedFalse(refreshId).ifPresent(storedToken -> {
-                        // Blacklist the associated access token
                         if (storedToken.getAccessTokenJti() != null) {
                             long accessTokenExpiryMillis = storedToken.getAccessTokenExpiry()
                                     .atZone(ZoneId.systemDefault())
@@ -246,9 +242,7 @@ public class AuthServiceImpl implements AuthService {
                                     .toEpochMilli();
                             tokenBlacklist.add(storedToken.getAccessTokenJti(), accessTokenExpiryMillis);
                         }
-                        // Revoke refresh token
                         storedToken.setRevoked(true);
-                        refreshTokenRepository.save(storedToken);
                     });
                     refreshTokenHandled = true;
                 }
@@ -286,7 +280,6 @@ public class AuthServiceImpl implements AuthService {
 
         if (existingToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             existingToken.setRevoked(true);
-            refreshTokenRepository.save(existingToken);
             throw new ApiException(MessageKeys.AUTH_REFRESH_TOKEN_EXPIRED, 401);
         }
 
@@ -297,7 +290,6 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 401);
         }
 
-        // Blacklist old access token
         if (existingToken.getAccessTokenJti() != null) {
             long accessTokenExpiryMillis = existingToken.getAccessTokenExpiry()
                     .atZone(ZoneId.systemDefault())
@@ -305,12 +297,7 @@ public class AuthServiceImpl implements AuthService {
                     .toEpochMilli();
             tokenBlacklist.add(existingToken.getAccessTokenJti(), accessTokenExpiryMillis);
         }
-
-        // Revoke old refresh token
         existingToken.setRevoked(true);
-        refreshTokenRepository.save(existingToken);
-
-        // Generate new tokens
         CustomUserDetails userDetails = new CustomUserDetails(user);
         String newAccessToken = jwtUtil.generateToken(user.getId(), user.getEmail(), userDetails.getAuthorities());
         String newAccessTokenJti = jwtUtil.extractJti(newAccessToken);
@@ -394,7 +381,6 @@ public class AuthServiceImpl implements AuthService {
 
         user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         user.setPasswordUpdateDate(LocalDateTime.now());
-        userRepository.save(user);
 
         emailService.sendPasswordChangedEmail(user.getEmail());
         return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_PASSWORD_UPDATED), 200);

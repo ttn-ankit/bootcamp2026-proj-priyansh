@@ -75,12 +75,20 @@ public final class MessageKeys {
     public static final String ERROR_ADDRESS_NOT_FOUND = "error.address_not_found";
     public static final String ERROR_CUSTOMER_NOT_FOUND = "error.customer_not_found";
     public static final String ERROR_USER_IS_DELETED = "error.user_is_deleted";
+    public static final String ERROR_ADDRESS_PERMISSION_DENIED = "error.address_permission_denied";
     
 
     public static final String ADMIN_CUSTOMER_ACTIVATED = "admin.customer_activated";
     public static final String ADMIN_CUSTOMER_DEACTIVATED = "admin.customer_deactivated";
     public static final String ADMIN_SELLER_ACTIVATED = "admin.seller_activated";
     public static final String ADMIN_SELLER_DEACTIVATED = "admin.seller_deactivated";
+
+    // Customer Service Messages
+    public static final String CUSTOMER_PROFILE_UPDATED = "customer.profile_updated";
+    public static final String CUSTOMER_PASSWORD_UPDATED = "customer.password_updated";
+    public static final String CUSTOMER_ADDRESS_ADDED = "customer.address_added";
+    public static final String CUSTOMER_ADDRESS_UPDATED = "customer.address_updated";
+    public static final String CUSTOMER_ADDRESS_DELETED = "customer.address_deleted";
 
     public static final String SELLER_PROFILE_UPDATED = "seller.profile_updated";
     public static final String SELLER_PASSWORD_UPDATED = "seller.password_updated";

@@ -6,6 +6,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class SellerServiceImpl implements SellerService {
     final EmailService emailService;
     final MessageService messageService;
     final UserSessionService userSessionService;
+    final ModelMapper modelMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -55,28 +57,16 @@ public class SellerServiceImpl implements SellerService {
 
         Seller seller = getActiveSellerByUserId(userId);
         User user = seller.getUser();
-        List<Address> addresses = addressRepository.findByUser(user);
+        List<Address> addresses = addressRepository.findByUserAndUserIsDeletedFalse(user);
         Address address = addresses.isEmpty() ? new Address() : addresses.get(0);
 
-        String imageUrl = computeImageUrl(user.getId());
+        SellerProfileResponseDTO response = modelMapper.map(seller, SellerProfileResponseDTO.class);
+        modelMapper.map(user, response);
+        modelMapper.map(address, response);
+        response.setImage(computeImageUrl(user.getId()));
+        response.setAddressId(address.getId());
 
-        return SellerProfileResponseDTO.builder()
-                .id(seller.getId())
-                .firstName(user.getFirstName())
-                .middleName(user.getMiddleName())
-                .lastName(user.getLastName())
-                .isActive(user.isActive())
-                .companyContact(seller.getCompanyContact())
-                .companyName(seller.getCompanyName())
-                .image(imageUrl)
-                .gst(seller.getGst())
-                .addressId(address.getId())
-                .addressLine(address.getAddressLine())
-                .city(address.getCity())
-                .state(address.getState())
-                .country(address.getCountry())
-                .zipCode(address.getZipCode())
-                .build();
+        return response;
     }
 
     @Override
@@ -84,22 +74,9 @@ public class SellerServiceImpl implements SellerService {
     public ApiResponseDTO updateProfile(Long userId, SellerProfileUpdateRequestDTO dto) {
 
         Seller seller = getActiveSellerByUserId(userId);
-        User user = seller.getUser();
 
-        if (dto.getFirstName() != null)
-            user.setFirstName(dto.getFirstName());
-
-        if (dto.getMiddleName() != null)
-            user.setMiddleName(dto.getMiddleName());
-
-        if (dto.getLastName() != null)
-            user.setLastName(dto.getLastName());
-
-        if (dto.getCompanyName() != null)
-            seller.setCompanyName(dto.getCompanyName());
-
-        if (dto.getCompanyContact() != null)
-            seller.setCompanyContact(dto.getCompanyContact());
+        modelMapper.map(dto, seller);
+        modelMapper.map(dto, seller.getUser());
 
         return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_PROFILE_UPDATED), 200);
     }
@@ -128,36 +105,15 @@ public class SellerServiceImpl implements SellerService {
     @Transactional
     public ApiResponseDTO updateAddress(Long userId, AddressPartialUpdateRequestDTO dto) {
         Seller seller = getActiveSellerByUserId(userId);
-        User user = seller.getUser();
+        Address address = addressRepository.findByUserAndUserIsDeletedFalse(seller.getUser()).stream().findFirst()
+                .orElseThrow(
+                        () -> new ApiException("Address not found", 400));
 
-        List<Address> addresses = addressRepository.findByUser(user);
-        if (addresses.isEmpty()) {
-            throw new ApiException(messageService.get(MessageKeys.ERROR_ADDRESS_NOT_FOUND), 404);
-        }
-
-        Address address = addresses.get(0);
-
-        if (dto.getAddressLine() != null && !dto.getAddressLine().trim().isEmpty()) {
-            address.setAddressLine(dto.getAddressLine().trim());
-        }
-        if (dto.getCity() != null && !dto.getCity().trim().isEmpty()) {
-            address.setCity(dto.getCity().trim());
-        }
-        if (dto.getState() != null && !dto.getState().trim().isEmpty()) {
-            address.setState(dto.getState().trim());
-        }
-        if (dto.getCountry() != null && !dto.getCountry().trim().isEmpty()) {
-            address.setCountry(dto.getCountry().trim());
-        }
-        if (dto.getZipCode() != null && !dto.getZipCode().trim().isEmpty()) {
-            address.setZipCode(dto.getZipCode().trim());
-        }
         if (dto.getLabel() != null) {
             validateSellerAddressLabel(dto.getLabel());
-            address.setLabel(dto.getLabel());
         }
 
-        addressRepository.save(address);
+        modelMapper.map(dto, address);
 
         return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_ADDRESS_UPDATED), 200);
     }
@@ -177,7 +133,7 @@ public class SellerServiceImpl implements SellerService {
         File userDir = Paths.get(basePath, "users").toFile();
         if (userDir.exists() && userDir.isDirectory()) {
             File[] files = userDir.listFiles((dir, name) -> name.startsWith(userId + "."));
-            if(files != null && files.length > 0){
+            if (files != null && files.length > 0) {
                 return "/images/users/" + files[0].getName();
             }
         }

@@ -2,6 +2,8 @@ package com.example.ecommerceproject.service.impl;
 
 import static lombok.AccessLevel.PRIVATE;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.data.domain.Pageable;
 import com.example.ecommerceproject.exception.ApiException;
@@ -22,7 +24,6 @@ import com.example.ecommerceproject.entity.User;
 import com.example.ecommerceproject.repository.AddressRepository;
 import com.example.ecommerceproject.repository.CustomerRepository;
 import com.example.ecommerceproject.repository.SellerRepository;
-import com.example.ecommerceproject.repository.UserRepository;
 import com.example.ecommerceproject.service.AdminService;
 import com.example.ecommerceproject.service.EmailService;
 import com.example.ecommerceproject.service.UserSessionService;
@@ -39,7 +40,6 @@ public class AdminServiceImpl implements AdminService {
 
     final CustomerRepository customerRepository;
     final SellerRepository sellerRepository;
-    final UserRepository userRepository;
     final AddressRepository addressRepository;
     final EmailService emailService;
     final MessageService messageService;
@@ -103,7 +103,6 @@ public class AdminServiceImpl implements AdminService {
         }
 
         user.setActive(true);
-        userRepository.save(user);
         emailService.sendAccountActivationEmail(user.getEmail());
 
         return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_CUSTOMER_ACTIVATED), 200);
@@ -124,7 +123,6 @@ public class AdminServiceImpl implements AdminService {
         }
 
         user.setActive(false);
-        userRepository.save(user);
 
         userSessionService.revokeAllRefreshTokens(user);
 
@@ -147,7 +145,6 @@ public class AdminServiceImpl implements AdminService {
         }
 
         user.setActive(true);
-        userRepository.save(user);
         emailService.sendAccountActivationEmail(user.getEmail());
 
         return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_SELLER_ACTIVATED), 200);
@@ -168,7 +165,6 @@ public class AdminServiceImpl implements AdminService {
         }
 
         user.setActive(false);
-        userRepository.save(user);
 
         userSessionService.revokeAllRefreshTokens(user);
 
@@ -214,39 +210,26 @@ public class AdminServiceImpl implements AdminService {
     }
 
     private String fetchAndFormatAddress(User user) {
-        List<Address> addresses = addressRepository.findByUser(user);
+        List<Address> addresses = addressRepository.findByUserAndUserIsDeletedFalse(user); 
+        
         if (addresses == null || addresses.isEmpty()) {
             return "N/A";
         }
 
-        Address addr = addresses.get(0); // Get the first (and for sellers, only) address
-        StringBuilder addressBuilder = new StringBuilder();
-        
-        if (addr.getAddressLine() != null && !addr.getAddressLine().trim().isEmpty()) {
-            addressBuilder.append(addr.getAddressLine().trim());
-        }
-        
-        if (addr.getCity() != null && !addr.getCity().trim().isEmpty()) {
-            if (addressBuilder.length() > 0) addressBuilder.append(", ");
-            addressBuilder.append(addr.getCity().trim());
-        }
-        
-        if (addr.getState() != null && !addr.getState().trim().isEmpty()) {
-            if (addressBuilder.length() > 0) addressBuilder.append(", ");
-            addressBuilder.append(addr.getState().trim());
-        }
-        
-        if (addr.getZipCode() != null && !addr.getZipCode().trim().isEmpty()) {
-            if (addressBuilder.length() > 0) addressBuilder.append(" - ");
-            addressBuilder.append(addr.getZipCode().trim());
-        }
-        
-        if (addr.getCountry() != null && !addr.getCountry().trim().isEmpty()) {
-            if (addressBuilder.length() > 0) addressBuilder.append(", ");
-            addressBuilder.append(addr.getCountry().trim());
-        }
-        
-        return addressBuilder.length() > 0 ? addressBuilder.toString() : "N/A";
+        Address addr = addresses.get(0); 
+
+        String formattedAddress = Stream.of(
+                    addr.getAddressLine(), 
+                    addr.getCity(), 
+                    addr.getState(), 
+                    addr.getZipCode(), 
+                    addr.getCountry()
+                )
+                .filter(s -> s != null && !s.isBlank())
+                .map(String::trim)
+                .collect(Collectors.joining(", "));
+
+        return formattedAddress.isEmpty() ? "N/A" : formattedAddress;
     }
 
     private String buildFullName(User user) {

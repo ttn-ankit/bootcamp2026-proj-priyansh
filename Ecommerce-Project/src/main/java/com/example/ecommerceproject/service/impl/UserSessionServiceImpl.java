@@ -38,9 +38,7 @@ public class UserSessionServiceImpl implements UserSessionService {
             return 0;
         }
 
-        // Blacklist all associated access tokens and revoke refresh tokens
         activeTokens.forEach(token -> {
-            // Blacklist the access token
             if (token.getAccessTokenJti() != null && !token.isRevoked()) {
                 long accessTokenExpiryMillis = token.getAccessTokenExpiry()
                         .atZone(ZoneId.systemDefault())
@@ -48,7 +46,6 @@ public class UserSessionServiceImpl implements UserSessionService {
                         .toEpochMilli();
                 tokenBlacklist.add(token.getAccessTokenJti(), accessTokenExpiryMillis);
             }
-            // Mark refresh token as revoked
             token.setRevoked(true);
         });
         
