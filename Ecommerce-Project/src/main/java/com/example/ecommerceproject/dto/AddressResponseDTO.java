@@ -2,15 +2,13 @@ package com.example.ecommerceproject.dto;
 
 import static lombok.AccessLevel.PRIVATE;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
-@Data
-@Builder
-@AllArgsConstructor
+@Getter
+@Setter
 @NoArgsConstructor
 @FieldDefaults(level = PRIVATE)
 public class AddressResponseDTO {

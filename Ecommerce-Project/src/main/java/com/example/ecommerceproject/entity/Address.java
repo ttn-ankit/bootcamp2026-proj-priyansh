@@ -14,7 +14,20 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@SQLDelete(sql = "UPDATE users SET is_deleted = true WHERE id=?")
+@Table(
+        name = "Address",
+        uniqueConstraints = @UniqueConstraint(
+                columnNames = {
+                        "user_id",
+                        "address_line",
+                        "city",
+                        "state",
+                        "country",
+                        "zip_code"
+                }
+        )
+)
+@SQLDelete(sql = "UPDATE address SET is_deleted = true WHERE id=?")
 @SQLRestriction("is_deleted = false")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Address {

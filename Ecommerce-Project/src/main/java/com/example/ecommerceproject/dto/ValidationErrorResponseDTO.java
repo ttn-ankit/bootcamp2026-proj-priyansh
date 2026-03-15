@@ -7,13 +7,11 @@ import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = PRIVATE)
 public class ValidationErrorResponseDTO {
@@ -24,7 +22,6 @@ public class ValidationErrorResponseDTO {
 
     @Getter
     @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
     public static class FieldErrorDTO {
         String field;

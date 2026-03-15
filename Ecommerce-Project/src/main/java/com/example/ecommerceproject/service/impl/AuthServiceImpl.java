@@ -415,6 +415,7 @@ public class AuthServiceImpl implements AuthService {
         user.setMiddleName(dto.getMiddleName());
         user.setLastName(dto.getLastName());
         user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        user.setPasswordUpdateDate(LocalDateTime.now());
 
         user.setActive(false);
         user.setExpired(false);

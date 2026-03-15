@@ -2,13 +2,13 @@ package com.example.ecommerceproject.dto;
 
 import static lombok.AccessLevel.PRIVATE;
 
-import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
-@Builder
 @FieldDefaults(level = PRIVATE)
+@NoArgsConstructor
 public class SellerProfileResponseDTO {
     Long id;
     String firstName;

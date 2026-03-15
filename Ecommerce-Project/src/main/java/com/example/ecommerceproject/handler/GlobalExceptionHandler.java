@@ -37,8 +37,8 @@ public class GlobalExceptionHandler {
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("message", message);
-        response.put("status", HttpStatus.UNAUTHORIZED.value());
-        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        response.put("status", apiException.getStatus());
+        return new ResponseEntity<>(response, HttpStatus.valueOf(apiException.getStatus()));
     }
 
     @ExceptionHandler(DisabledException.class)

@@ -8,14 +8,12 @@ import org.springframework.security.core.GrantedAuthority;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
 @AllArgsConstructor
-@NoArgsConstructor
 @FieldDefaults(level = PRIVATE)
 public class LoginResponseDTO {
     String accessToken;

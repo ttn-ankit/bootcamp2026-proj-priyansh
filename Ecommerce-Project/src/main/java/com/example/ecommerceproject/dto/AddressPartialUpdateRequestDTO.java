@@ -3,13 +3,16 @@ package com.example.ecommerceproject.dto;
 import static lombok.AccessLevel.PRIVATE;
 import com.example.ecommerceproject.enums.AddressType;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
-@Data
+@Getter
+@Setter
 @FieldDefaults(level = PRIVATE)
+@NoArgsConstructor
 @Schema(description = "Address update request")
 public class AddressPartialUpdateRequestDTO {
 
@@ -34,6 +37,5 @@ public class AddressPartialUpdateRequestDTO {
     String zipCode;
     
     @Schema(description = "Address label", example = "OFFICE")
-    @NotNull(message = "{validation.address_label_required}")
     AddressType label;
 }

@@ -37,6 +37,7 @@ public final class MessageKeys {
     public static final String AUTH_USER_NOT_FOUND = "auth.user_not_found";
 
     public static final String VALIDATION_FAILED = "validation.failed";
+    public static final String VALIDATION_EMAIL_INVALID = "validation.email_invalid";
     public static final String VALIDATION_EMAIL_EXISTS = "validation.email_exists";
     public static final String VALIDATION_GST_EXISTS = "validation.gst_exists";
     public static final String VALIDATION_COMPANY_NAME_EXISTS = "validation.company_name_exists";
@@ -52,6 +53,15 @@ public final class MessageKeys {
     public static final String VALIDATION_ADDRESS_LINE_INVALID = "validation.address_line_invalid";
     public static final String VALIDATION_ZIP_CODE_INVALID = "validation.zip_code_invalid";
     public static final String VALIDATION_ADDRESS_LABEL_REQUIRED = "validation.address_label_required";
+    public static final String VALIDATION_ADDRESS_REQUIRED = "validation.address_required";
+    public static final String VALIDATION_CITY_REQUIRED = "validation.city_required";
+    public static final String VALIDATION_ZIP_CODE_REQUIRED = "validation.zip_code_required";
+    public static final String VALIDATION_STATE_REQUIRED = "validation.state_required";
+    public static final String VALIDATION_ADDRESS_LINE_REQUIRED = "validation.address_line_required";
+    public static final String VALIDATION_COUNTRY_REQUIRED = "validation.country_required";
+    public static final String VALIDATION_COUNTRY_LENGTH = "validation.country_length";
+    public static final String VALIDATION_CITY_LENGTH = "validation.city_length";
+    public static final String VALIDATION_STATE_LENGTH = "validation.state_length";
     public static final String VALIDATION_USER_ALREADY_DELETED = "validation.user_already_deleted";
     public static final String VALIDATION_USER_ALREADY_DEACTIVATED = "validation.user_already_deactivated";
     public static final String VALIDATION_USER_ALREADY_ACTIVATED = "validation.user_already_activated";
@@ -89,6 +99,7 @@ public final class MessageKeys {
     public static final String CUSTOMER_ADDRESS_ADDED = "customer.address_added";
     public static final String CUSTOMER_ADDRESS_UPDATED = "customer.address_updated";
     public static final String CUSTOMER_ADDRESS_DELETED = "customer.address_deleted";
+    public static final String CUSTOMER_ADDRESS_ALREADY_EXISTS = "customer.address_already_exists";
 
     public static final String SELLER_PROFILE_UPDATED = "seller.profile_updated";
     public static final String SELLER_PASSWORD_UPDATED = "seller.password_updated";

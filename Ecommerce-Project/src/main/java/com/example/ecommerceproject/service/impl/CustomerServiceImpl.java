@@ -112,6 +112,21 @@ public class CustomerServiceImpl implements CustomerService {
             throw new ApiException(messageService.get(MessageKeys.VALIDATION_INVALID_CUSTOMER_ADDRESS_LABEL), 400);
         }
 
+        boolean exists = addressRepository
+                .existsByUserAndAddressLineIgnoreCaseAndCityIgnoreCaseAndCountryIgnoreCaseAndStateIgnoreCaseAndZipCode(
+                        user,
+                        dto.getAddressLine(),
+                        dto.getCity(),
+                        dto.getCountry(),
+                        dto.getState(),
+                        dto.getZipCode());
+
+        if (exists) {
+            throw new ApiException(
+                    messageService.get(MessageKeys.CUSTOMER_ADDRESS_ALREADY_EXISTS),
+                    409);
+        }
+
         Address address = mapper.map(dto, Address.class);
         address.setUser(user);
         addressRepository.save(address);

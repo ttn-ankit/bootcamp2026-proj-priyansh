@@ -10,11 +10,13 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
+@NoArgsConstructor
 @FieldDefaults(level = PRIVATE)
 public class AddressDTO {
 
@@ -52,9 +54,9 @@ public class AddressDTO {
         example = "India",
         requiredMode = Schema.RequiredMode.REQUIRED
     )
-    @NotBlank(message = "Country cannot be empty")
-    @Size(min = 2, max = 20, message = "Country must be between 2 and 20 characters")
-    @Pattern(regexp = "^[a-zA-Z ]+$", message = "Country must contain only letters")
+    @NotBlank(message = "{validation.country_required}")
+    @Size(min = 2, max = 20, message = "{validation.country_length}")
+    @Pattern(regexp = "^[a-zA-Z ]+$", message = "{validation.country_invalid}")
     String country;
     
     @Schema(
@@ -70,6 +72,6 @@ public class AddressDTO {
         description = "Address of a User",
         requiredMode = Schema.RequiredMode.REQUIRED
     )
-    @NotNull(message = "{validation.address_required}")
+    @NotNull(message = "{validation.address_label_required}")
     AddressType label;
 }
