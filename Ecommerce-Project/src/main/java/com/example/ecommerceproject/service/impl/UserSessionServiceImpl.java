@@ -28,29 +28,55 @@ public class UserSessionServiceImpl implements UserSessionService {
     @Override
     @Transactional
     public int revokeAllRefreshTokens(User user) {
+
         if (user == null) {
             return 0;
         }
 
-        List<RefreshToken> activeTokens = refreshTokenRepository.findAllByUser(user);
-        
-        if (activeTokens.isEmpty()) {
+        List<RefreshToken> tokens = refreshTokenRepository.findAllByUser(user);
+
+        if (tokens.isEmpty()) {
             return 0;
         }
 
-        activeTokens.forEach(token -> {
-            if (token.getAccessTokenJti() != null && !token.isRevoked()) {
-                long accessTokenExpiryMillis = token.getAccessTokenExpiry()
-                        .atZone(ZoneId.systemDefault())
-                        .toInstant()
-                        .toEpochMilli();
-                tokenBlacklist.add(token.getAccessTokenJti(), accessTokenExpiryMillis);
-            }
-            token.setRevoked(true);
-        });
-        
-        refreshTokenRepository.saveAll(activeTokens);
+        tokens.forEach(token -> {
 
-        return activeTokens.size();
+            if (token.getAccessTokenJti() != null) {
+
+                long accessExpiryMillis =
+                        token.getAccessTokenExpiry()
+                                .atZone(ZoneId.systemDefault())
+                                .toInstant()
+                                .toEpochMilli();
+
+                tokenBlacklist.add(token.getAccessTokenJti(), accessExpiryMillis);
+            }
+        });
+
+        refreshTokenRepository.deleteAll(tokens);
+
+        return tokens.size();
+    }
+
+    @Override
+    @Transactional
+    public void deleteRefreshToken(String refreshId) {
+
+        refreshTokenRepository.findByTokenId(refreshId)
+                .ifPresent(token -> {
+
+                    if (token.getAccessTokenJti() != null) {
+
+                        long accessExpiryMillis =
+                                token.getAccessTokenExpiry()
+                                        .atZone(ZoneId.systemDefault())
+                                        .toInstant()
+                                        .toEpochMilli();
+
+                        tokenBlacklist.add(token.getAccessTokenJti(), accessExpiryMillis);
+                    }
+
+                    refreshTokenRepository.delete(token);
+                });
     }
 }

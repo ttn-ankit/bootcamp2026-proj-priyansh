@@ -17,6 +17,7 @@ import com.example.ecommerceproject.repository.*;
 import com.example.ecommerceproject.service.AuthService;
 import com.example.ecommerceproject.service.EmailService;
 import com.example.ecommerceproject.service.MessageService;
+import com.example.ecommerceproject.service.UserSessionService;
 import com.example.ecommerceproject.util.JwtUtil;
 import com.example.ecommerceproject.util.MessageKeys;
 
@@ -59,47 +60,34 @@ public class AuthServiceImpl implements AuthService {
     final RefreshTokenRepository refreshTokenRepository;
     final TokenBlacklist tokenBlacklist;
     final MessageService messageService;
+    final UserSessionService service;
 
     @Override
     @Transactional
     public ApiResponseDTO register(RegisterRequestDTO dto) {
-
         validateCustomerRegistration(dto);
-
         User user = createUser(dto);
-
         assignRole(user, RoleEnums.ROLE_CUSTOMER);
-
         createCustomer(user, dto.getPhoneNumber());
-
         createActivationToken(user);
-
         return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_REGISTRATION_SUCCESS), 200);
     }
 
     @Override
     @Transactional
     public ApiResponseDTO registerSeller(SellerRegisterRequestDTO dto) {
-
         validateSellerRegistration(dto);
-
         User user = createUser(dto);
-
         assignRole(user, RoleEnums.ROLE_SELLER);
-
         createSeller(user, dto);
-
         saveAddress(user, dto.getAddress());
-
         emailService.sendSellerRegistrationEmail(user.getEmail());
-
         return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_SELLER_REGISTRATION_SUCCESS), 200);
     }
 
     @Override
     @Transactional(noRollbackFor = ApiException.class)
     public ApiResponseDTO activateAccount(String tokenValue) {
-
         ActivationToken token = activationTokenRepository
                 .findByToken(tokenValue)
                 .orElseThrow(() -> new ApiException(MessageKeys.AUTH_INVALID_ACTIVATION_TOKEN, 400));
@@ -110,33 +98,26 @@ public class AuthServiceImpl implements AuthService {
             createActivationToken(user);
             throw new ApiException(MessageKeys.AUTH_ACTIVATION_EXPIRED, 400);
         }
-
         User user = token.getUser();
         user.setActive(true);
         activationTokenRepository.delete(token);
-
         return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_ACTIVATION_SUCCESS), 200);
     }
 
     @Override
     @Transactional
     public ApiResponseDTO resendActivationLink(String email) {
-
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 404));
-
         if (user.isActive()) {
             throw new ApiException(MessageKeys.AUTH_ACCOUNT_ALREADY_ACTIVATED, 400);
         }
-
         activationTokenRepository.deleteByUser(user);
         createActivationToken(user);
-
         return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_RESEND_ACTIVATION_SUCCESS), 200);
     }
 
     private void validateCustomerRegistration(RegisterRequestDTO dto) {
-
         if (userRepository.existsByEmailIgnoreCase(dto.getEmail())) {
             throw new ApiException(MessageKeys.VALIDATION_EMAIL_EXISTS, 409);
         }
@@ -160,7 +141,7 @@ public class AuthServiceImpl implements AuthService {
         }
         validateSellerAddressLabel(dto.getAddress().getLabel());
     }
-    
+
     private void validateSellerAddressLabel(AddressType label) {
         if (label != AddressType.OFFICE) {
             throw new ApiException(MessageKeys.VALIDATION_INVALID_SELLER_ADDRESS_LABEL, 400);
@@ -168,19 +149,20 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(noRollbackFor = {ApiException.class, BadCredentialsException.class})
+    @Transactional(noRollbackFor = { ApiException.class, BadCredentialsException.class })
     public LoginResponseDTO login(LoginRequestDTO dto) {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(dto.getEmail().toLowerCase(), dto.getPassword()));
 
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            
+
             User entity = userRepository.findById(userDetails.getUserId())
                     .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 404));
             entity.setInvalidAttemptCount(0);
 
-            String accessToken = jwtUtil.generateToken(userDetails.getUserId(), userDetails.getUsername(), userDetails.getAuthorities());
+            String accessToken = jwtUtil.generateToken(userDetails.getUserId(), userDetails.getUsername(),
+                    userDetails.getAuthorities());
             String accessTokenJti = jwtUtil.extractJti(accessToken);
 
             RefreshToken refreshToken = new RefreshToken();
@@ -192,7 +174,8 @@ public class AuthServiceImpl implements AuthService {
             refreshToken.setAccessTokenExpiry(LocalDateTime.now().plusMinutes(15));
             refreshTokenRepository.save(refreshToken);
 
-            String refreshTokenValue = jwtUtil.generateRefreshToken(userDetails.getUserId(), userDetails.getUsername(), refreshId);
+            String refreshTokenValue = jwtUtil.generateRefreshToken(userDetails.getUserId(), userDetails.getUsername(),
+                    refreshId);
 
             return new LoginResponseDTO(
                     accessToken,
@@ -219,54 +202,47 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public ApiResponseDTO logout(String accessTokenValue, String refreshTokenValue) {
-        boolean accessTokenHandled = false;
-        boolean refreshTokenHandled = false;
-
+        boolean handled = false;
         if (accessTokenValue != null && !accessTokenValue.isBlank()) {
             if (jwtUtil.isTokenValid(accessTokenValue)) {
                 Claims claims = jwtUtil.extractAllClaims(accessTokenValue);
-                tokenBlacklist.add(claims.getId(), claims.getExpiration().getTime());
-                accessTokenHandled = true;
+                tokenBlacklist.add(
+                        claims.getId(),
+                        claims.getExpiration().getTime());
+                handled = true;
             }
         }
-
         if (refreshTokenValue != null && !refreshTokenValue.isBlank()) {
             if (jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
                 String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
                 if (refreshId != null) {
-                    refreshTokenRepository.findByTokenIdAndRevokedFalse(refreshId).ifPresent(storedToken -> {
-                        if (storedToken.getAccessTokenJti() != null) {
-                            long accessTokenExpiryMillis = storedToken.getAccessTokenExpiry()
-                                    .atZone(ZoneId.systemDefault())
-                                    .toInstant()
-                                    .toEpochMilli();
-                            tokenBlacklist.add(storedToken.getAccessTokenJti(), accessTokenExpiryMillis);
-                        }
-                        storedToken.setRevoked(true);
-                    });
-                    refreshTokenHandled = true;
+                    service.deleteRefreshToken(refreshId);
+                    handled = true;
                 }
             }
         }
-
-        if (!accessTokenHandled && !refreshTokenHandled) {
+        if (!handled) {
             throw new ApiException(MessageKeys.AUTH_TOKEN_REQUIRED, 401);
         }
-
-        return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_LOGOUT_SUCCESS), 200);
+        return new ApiResponseDTO(
+                messageService.get(MessageKeys.AUTH_LOGOUT_SUCCESS),
+                200);
     }
 
     @Override
     @Transactional
     public LoginResponseDTO refreshAccessToken(String refreshTokenValue) {
+
         if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
             throw new ApiException(MessageKeys.AUTH_TOKEN_REQUIRED, 401);
         }
+
         if (!jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
             throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 401);
         }
 
         Claims claims = jwtUtil.extractAllClaims(refreshTokenValue);
+
         Long userId = claims.get("userId", Long.class);
         String email = claims.getSubject();
         String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
@@ -275,43 +251,46 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 401);
         }
 
-        RefreshToken existingToken = refreshTokenRepository.findByTokenIdAndRevokedFalse(refreshId)
-                .orElseThrow(() -> new ApiException(MessageKeys.AUTH_REFRESH_TOKEN_REVOKED, 401));
+        RefreshToken existingToken = refreshTokenRepository.findByTokenId(refreshId)
+                .orElseThrow(() -> new ApiException(
+                        MessageKeys.AUTH_REFRESH_TOKEN_REVOKED, 401));
 
         if (existingToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            existingToken.setRevoked(true);
+            service.deleteRefreshToken(refreshId);
             throw new ApiException(MessageKeys.AUTH_REFRESH_TOKEN_EXPIRED, 401);
         }
 
         User user = userRepository.findWithRolesByEmailAndIsDeletedFalse(email)
-                .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 404));
+                .orElseThrow(() -> new ApiException(
+                        MessageKeys.AUTH_USER_NOT_FOUND, 404));
 
         if (!email.equalsIgnoreCase(user.getEmail())) {
             throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 401);
         }
 
-        if (existingToken.getAccessTokenJti() != null) {
-            long accessTokenExpiryMillis = existingToken.getAccessTokenExpiry()
-                    .atZone(ZoneId.systemDefault())
-                    .toInstant()
-                    .toEpochMilli();
-            tokenBlacklist.add(existingToken.getAccessTokenJti(), accessTokenExpiryMillis);
-        }
-        existingToken.setRevoked(true);
+        service.deleteRefreshToken(refreshId);
         CustomUserDetails userDetails = new CustomUserDetails(user);
-        String newAccessToken = jwtUtil.generateToken(user.getId(), user.getEmail(), userDetails.getAuthorities());
+        String newAccessToken = jwtUtil.generateToken(
+                user.getId(),
+                user.getEmail(),
+                userDetails.getAuthorities());
+
         String newAccessTokenJti = jwtUtil.extractJti(newAccessToken);
-
-        RefreshToken newRefreshToken = new RefreshToken();
-        newRefreshToken.setUser(user);
         String newRefreshId = UUID.randomUUID().toString();
-        newRefreshToken.setTokenId(newRefreshId);
-        newRefreshToken.setAccessTokenJti(newAccessTokenJti);
-        newRefreshToken.setExpiryDate(LocalDateTime.now().plusDays(1));
-        newRefreshToken.setAccessTokenExpiry(LocalDateTime.now().plusMinutes(15));
-        refreshTokenRepository.save(newRefreshToken);
 
-        String newRefreshTokenValue = jwtUtil.generateRefreshToken(user.getId(), user.getEmail(), newRefreshId);
+        RefreshToken newToken = new RefreshToken();
+        newToken.setUser(user);
+        newToken.setTokenId(newRefreshId);
+        newToken.setAccessTokenJti(newAccessTokenJti);
+        newToken.setExpiryDate(LocalDateTime.now().plusDays(1));
+        newToken.setAccessTokenExpiry(LocalDateTime.now().plusMinutes(15));
+
+        refreshTokenRepository.save(newToken);
+
+        String newRefreshTokenValue = jwtUtil.generateRefreshToken(
+                user.getId(),
+                user.getEmail(),
+                newRefreshId);
 
         return new LoginResponseDTO(
                 newAccessToken,
@@ -326,18 +305,14 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponseDTO requestPasswordReset(ForgotPasswordRequestDTO dto) {
         User user = userRepository.findByEmailIgnoreCase(dto.getEmail())
                 .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 404));
-
         if (!user.isActive()) {
             throw new ApiException(MessageKeys.VALIDATION_ACCOUNT_NOT_ACTIVATED, 400);
         }
-
         long pwdUpdatedAtMillis = user.getPasswordUpdateDate() == null
                 ? 0L
                 : user.getPasswordUpdateDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-
         String token = jwtUtil.generatePasswordResetToken(user.getId(), user.getEmail(), pwdUpdatedAtMillis);
         emailService.sendPasswordResetEmail(user.getEmail(), token);
-
         return new ApiResponseDTO(messageService.get(MessageKeys.AUTH_PASSWORD_RESET_SENT), 200);
     }
 
@@ -347,12 +322,10 @@ public class AuthServiceImpl implements AuthService {
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
             throw new ApiException(MessageKeys.VALIDATION_PASSWORDS_DO_NOT_MATCH, 400);
         }
-
         String token = dto.getToken();
         if (!jwtUtil.isPasswordResetTokenValid(token)) {
             throw new ApiException(MessageKeys.VALIDATION_INVALID_RESET_TOKEN, 400);
         }
-
         Claims claims = jwtUtil.extractAllClaims(token);
         Long userId = claims.get("userId", Long.class);
         String email = claims.getSubject();
@@ -387,89 +360,71 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private User createUser(RegisterRequestDTO dto) {
-
         User user = new User();
-
         user.setEmail(dto.getEmail().toLowerCase());
         user.setFirstName(dto.getFirstName());
         user.setMiddleName(dto.getMiddleName());
         user.setLastName(dto.getLastName());
         user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         user.setPasswordUpdateDate(LocalDateTime.now());
-
         user.setActive(false);
         user.setExpired(false);
         user.setLocked(false);
         user.setDeleted(false);
         user.setInvalidAttemptCount(0);
-
         return userRepository.save(user);
     }
 
     private User createUser(SellerRegisterRequestDTO dto) {
-
         User user = new User();
-
         user.setEmail(dto.getEmail());
         user.setFirstName(dto.getFirstName());
         user.setMiddleName(dto.getMiddleName());
         user.setLastName(dto.getLastName());
         user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         user.setPasswordUpdateDate(LocalDateTime.now());
-
         user.setActive(false);
         user.setExpired(false);
         user.setLocked(false);
         user.setDeleted(false);
         user.setInvalidAttemptCount(0);
-
         return userRepository.save(user);
     }
 
     private void assignRole(User user, RoleEnums roleEnum) {
-
         Role role = roleRepository.findByAuthority(roleEnum)
                 .orElseThrow(() -> new ApiException(MessageKeys.ERROR_ROLE_NOT_FOUND, 404));
-
         UserRole userRole = new UserRole(
                 new UserRoleId(user.getId(), role.getId()),
                 user,
                 role);
-
         userRoleRepository.save(userRole);
     }
 
     private void createCustomer(User user, String contact) {
-
         Customer customer = new Customer();
         customer.setUser(user);
         customer.setContact(contact);
-
         customerRepository.save(customer);
     }
 
     private void createSeller(User user, SellerRegisterRequestDTO dto) {
-
         Seller seller = new Seller();
-
         seller.setUser(user);
         seller.setCompanyName(dto.getCompanyName());
         seller.setCompanyContact(dto.getCompanyContact());
         seller.setGst(dto.getGst());
         seller.setApproved(false);
-
         sellerRepository.save(seller);
     }
 
     private void saveAddress(User user, AddressDTO dto) {
-        // Check if seller already has an address (sellers can only have one)
         long existingAddressCount = addressRepository.countByUser(user);
         if (existingAddressCount > 0) {
             throw new ApiException(MessageKeys.VALIDATION_SELLER_SINGLE_ADDRESS, 400);
         }
 
         Address address = new Address();
-
         address.setUser(user);
         address.setAddressLine(dto.getAddressLine());
         address.setCity(dto.getCity());
@@ -482,21 +437,15 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void createActivationToken(User user) {
-
         String tokenValue = UUID.randomUUID().toString();
-
         ActivationToken token = new ActivationToken();
-
         token.setToken(tokenValue);
         token.setUser(user);
         token.setExpiryDate(LocalDateTime.now().plusHours(3));
         token.setUsed(false);
-
         activationTokenRepository.save(token);
-
         emailService.sendActivationEmail(user.getEmail(), tokenValue);
     }
-
     private boolean isProtectedAdmin(User user) {
         return user != null && MessageKeys.PROTECTED_ADMIN_EMAIL.equalsIgnoreCase(user.getEmail());
     }
