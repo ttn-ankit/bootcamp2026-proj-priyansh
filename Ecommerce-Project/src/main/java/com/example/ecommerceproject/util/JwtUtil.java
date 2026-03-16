@@ -22,8 +22,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = PRIVATE)
 public class JwtUtil {
 
-        static final long ACCESS_TOKEN_VALIDITY = 15 * 60 * 1000L; // 15 minutes
-        static final long REFRESH_TOKEN_VALIDITY = 24 * 60 * 60 * 1000L; // 1 day
+        public static final long ACCESS_TOKEN_VALIDITY = 15 * 60 * 1000L; // 15 minutes
+        public static final long REFRESH_TOKEN_VALIDITY = 24 * 60 * 60 * 1000L; // 1 day
         static final long PASSWORD_RESET_TOKEN_VALIDITY = 3600000;
         static final int HMAC_KEY_MIN_BYTES = 32;
         static final String CLAIM_PURPOSE = "purpose";

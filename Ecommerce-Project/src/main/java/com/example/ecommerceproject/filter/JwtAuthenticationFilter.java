@@ -11,7 +11,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.example.ecommerceproject.config.TokenBlacklist;
+import com.example.ecommerceproject.service.UserSessionService;
 import com.example.ecommerceproject.service.impl.CustomUserDetailsServiceImpl;
 import com.example.ecommerceproject.util.JwtUtil;
 
@@ -29,7 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     final JwtUtil jwtUtil;
     final CustomUserDetailsServiceImpl userDetailsService;
-    final TokenBlacklist tokenBlacklist;
+    final UserSessionService userSessionService;
 
     @Override
     protected void doFilterInternal(
@@ -48,7 +48,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             token = authHeader.substring(7);
             try {
                 String jti = jwtUtil.extractJti(token);
-                if (tokenBlacklist.contains(jti)) {
+                // Check if access token exists and is valid in database
+                if (!userSessionService.isAccessTokenValid(jti)) {
                     filterChain.doFilter(request, response);
                     return;
                 }

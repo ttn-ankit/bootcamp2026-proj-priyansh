@@ -3,6 +3,7 @@ package com.example.ecommerceproject.bootstrap;
 import static lombok.AccessLevel.PRIVATE;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,6 +35,8 @@ public class AdminBootstrap implements CommandLineRunner {
     @Override
     public void run(String... args) {
 
+        seedRoles();
+
         if(userRepository.existsByEmailIgnoreCase(MessageKeys.PROTECTED_ADMIN_EMAIL)){
             return;
         }
@@ -63,5 +66,20 @@ public class AdminBootstrap implements CommandLineRunner {
         );
 
         userRoleRepository.save(userRole);
+    }
+
+    private void seedRoles() {
+
+        if (!roleRepository.existsByAuthority(RoleEnums.ROLE_ADMIN)) {
+            roleRepository.save(new Role(null, RoleEnums.ROLE_ADMIN, new ArrayList<>()));
+        }
+
+        if (!roleRepository.existsByAuthority(RoleEnums.ROLE_CUSTOMER)) {
+            roleRepository.save(new Role(null, RoleEnums.ROLE_CUSTOMER, new ArrayList<>()));
+        }
+
+        if (!roleRepository.existsByAuthority(RoleEnums.ROLE_SELLER)) {
+            roleRepository.save(new Role(null, RoleEnums.ROLE_SELLER, new ArrayList<>()));
+        }
     }
 }

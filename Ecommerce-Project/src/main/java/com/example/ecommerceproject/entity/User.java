@@ -68,7 +68,7 @@ public class User extends Auditable {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     Set<UserRole> userRoles;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     List<Address> addresses = new ArrayList<>();
 }
 

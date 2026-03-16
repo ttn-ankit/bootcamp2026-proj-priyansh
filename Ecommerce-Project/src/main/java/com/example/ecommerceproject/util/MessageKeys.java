@@ -40,6 +40,7 @@ public final class MessageKeys {
     public static final String VALIDATION_EMAIL_INVALID = "validation.email_invalid";
     public static final String VALIDATION_EMAIL_EXISTS = "validation.email_exists";
     public static final String VALIDATION_GST_EXISTS = "validation.gst_exists";
+    public static final String VALIDATION_GST_INVALID="validation.gst_invalid";
     public static final String VALIDATION_COMPANY_NAME_EXISTS = "validation.company_name_exists";
     public static final String VALIDATION_PASSWORDS_DO_NOT_MATCH = "validation.passwords_do_not_match";
     public static final String VALIDATION_PASSWORD_DO_NOT_MATCH = "validation.password_do_not_match";

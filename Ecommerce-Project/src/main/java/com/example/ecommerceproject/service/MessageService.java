@@ -23,6 +23,14 @@ public class MessageService {
         return messageSource.getMessage(key, null, key, locale);
     }
 
+    public String get(String key, Object[] args, Locale locale) {
+        return messageSource.getMessage(key, args, key, locale);
+    }
+
+    public String get(String key, Object[] args, String defaultMessage, Locale locale) {
+        return messageSource.getMessage(key, args, defaultMessage, locale);
+    }
+
     public String get(String key, Object... args) {
         Locale locale = LocaleContextHolder.getLocale();
         return messageSource.getMessage(key, args, key, locale);

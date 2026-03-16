@@ -4,6 +4,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.modelmapper.ModelMapper;
@@ -23,7 +24,6 @@ import com.example.ecommerceproject.entity.User;
 import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.repository.AddressRepository;
 import com.example.ecommerceproject.repository.SellerRepository;
-import com.example.ecommerceproject.repository.UserRepository;
 import com.example.ecommerceproject.service.EmailService;
 import com.example.ecommerceproject.service.MessageService;
 import com.example.ecommerceproject.service.SellerService;
@@ -43,7 +43,6 @@ public class SellerServiceImpl implements SellerService {
     String basePath;
 
     final SellerRepository sellerRepository;
-    final UserRepository userRepository;
     final AddressRepository addressRepository;
     final PasswordEncoder passwordEncoder;
     final EmailService emailService;
@@ -92,7 +91,7 @@ public class SellerServiceImpl implements SellerService {
         User user = seller.getUser();
 
         user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
-        userRepository.save(user);
+        user.setPasswordUpdateDate(LocalDateTime.now());
 
         userSessionService.revokeAllRefreshTokens(user);
 
