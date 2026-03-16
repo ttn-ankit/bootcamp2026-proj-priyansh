@@ -1,8 +1,5 @@
 package com.example.ecommerceproject.entity;
 
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
-
 import com.example.ecommerceproject.enums.AddressType;
 
 import jakarta.persistence.*;
@@ -27,8 +24,6 @@ import lombok.experimental.FieldDefaults;
                 }
         )
 )
-@SQLDelete(sql = "UPDATE address SET is_deleted = true WHERE id=?")
-@SQLRestriction("is_deleted = false")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Address {
     @Id
