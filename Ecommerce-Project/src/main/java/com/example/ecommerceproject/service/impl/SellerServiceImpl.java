@@ -64,7 +64,8 @@ public class SellerServiceImpl implements SellerService {
         SellerProfileResponseDTO response = modelMapper.map(seller, SellerProfileResponseDTO.class);
         modelMapper.map(user, response);
         modelMapper.map(address, response);
-        response.setImage(computeImageUrl(user.getId()));
+        response.setId(user.getId()); // ✅ Use User.id instead of Seller.id
+        response.setImage(computeImageUrl(user.getId(), seller));
         response.setAddressId(address.getId());
 
         return response;
@@ -132,15 +133,36 @@ public class SellerServiceImpl implements SellerService {
         return seller;
     }
 
-    private String computeImageUrl(Long userId) {
+    private String computeImageUrl(Long userId, Seller seller) {
         File userDir = Paths.get(basePath, "users").toFile();
-        if (userDir.exists() && userDir.isDirectory()) {
-            File[] files = userDir.listFiles((dir, name) -> name.startsWith(userId + "."));
-            if (files != null && files.length > 0) {
-                return "/images/users/" + files[0].getName();
+        if (!userDir.exists() || !userDir.isDirectory()) {
+            return null;
+        }
+
+        // Try userId first, then seller.id as fallback
+        Long[] idsToTry = {userId, seller != null ? seller.getId() : null};
+        
+        for (Long id : idsToTry) {
+            if (id == null) continue;
+            
+            String imageUrl = findImageForId(userDir, id);
+            if (imageUrl != null) {
+                return imageUrl;
             }
         }
+        
         return null;
+    }
+
+    private String findImageForId(File directory, Long id) {
+        File[] files = directory.listFiles((dir, name) -> {
+            String lowerName = name.toLowerCase();
+            return lowerName.startsWith(id + ".") && 
+                   (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || 
+                    lowerName.endsWith(".png") || lowerName.endsWith(".gif"));
+        });
+        
+        return (files != null && files.length > 0) ? "/images/users/" + files[0].getName() : null;
     }
 
     private void validateSellerAddressLabel(AddressType label) {

@@ -190,6 +190,7 @@ public class AdminServiceImpl implements AdminService {
         CustomerResponseDTO dto = modelMapper.map(customer, CustomerResponseDTO.class);
 
         User user = customer.getUser();
+        dto.setId(user.getId());
         dto.setFullName(buildFullName(user));
         dto.setEmail(user.getEmail());
         dto.setActive(user.isActive());
@@ -201,6 +202,7 @@ public class AdminServiceImpl implements AdminService {
         SellerResponseDTO dto = modelMapper.map(seller, SellerResponseDTO.class);
 
         User user = seller.getUser();
+        dto.setId(user.getId());
         dto.setFullName(buildFullName(user));
         dto.setEmail(user.getEmail());
         dto.setActive(user.isActive());
