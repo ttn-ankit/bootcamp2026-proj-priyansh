@@ -22,6 +22,10 @@ import com.example.ecommerceproject.dto.ValidationErrorResponseDTO;
 import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.service.MessageService;
 import com.example.ecommerceproject.util.MessageKeys;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 
@@ -140,5 +144,49 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST.value());
                 
         return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<?> handleExpiredJwtException(ExpiredJwtException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String message = messageService.get(MessageKeys.JWT_TOKEN_EXPIRED, null, "Token has expired", locale);
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("message", message);
+        response.put("status", HttpStatus.UNAUTHORIZED.value());
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(MalformedJwtException.class)
+    public ResponseEntity<?> handleMalformedJwtException(MalformedJwtException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String message = messageService.get(MessageKeys.JWT_TOKEN_MALFORMED, null, "Invalid token format", locale);
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("message", message);
+        response.put("status", HttpStatus.UNAUTHORIZED.value());
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(UnsupportedJwtException.class)
+    public ResponseEntity<?> handleUnsupportedJwtException(UnsupportedJwtException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String message = messageService.get(MessageKeys.JWT_TOKEN_INVALID, null, "Unsupported token", locale);
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("message", message);
+        response.put("status", HttpStatus.UNAUTHORIZED.value());
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<?> handleJwtException(JwtException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String message = messageService.get(MessageKeys.JWT_TOKEN_INVALID, null, "Invalid token", locale);
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("message", message);
+        response.put("status", HttpStatus.UNAUTHORIZED.value());
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
     }
 }

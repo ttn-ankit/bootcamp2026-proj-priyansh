@@ -35,6 +35,7 @@ public final class MessageKeys {
     public static final String AUTH_INVALID_ACTIVATION_TOKEN = "auth.invalid_activation_token";
     public static final String AUTH_ACCOUNT_ALREADY_ACTIVATED = "auth.account_already_activated";
     public static final String AUTH_USER_NOT_FOUND = "auth.user_not_found";
+    public static final String AUTH_USER_NOT_AUTHENTICATED = "auth.user_not_authenticated";
 
     public static final String VALIDATION_FAILED = "validation.failed";
     public static final String VALIDATION_EMAIL_INVALID = "validation.email_invalid";
@@ -87,6 +88,7 @@ public final class MessageKeys {
     public static final String ERROR_CUSTOMER_NOT_FOUND = "error.customer_not_found";
     public static final String ERROR_USER_IS_DELETED = "error.user_is_deleted";
     public static final String ERROR_ADDRESS_PERMISSION_DENIED = "error.address_permission_denied";
+    public static final String ERROR_ACCESS_DENIED = "error.access_denied";
     
 
     public static final String ADMIN_CUSTOMER_ACTIVATED = "admin.customer_activated";
@@ -121,4 +123,11 @@ public final class MessageKeys {
     public static final String EMAIL_PASSWORD_CHANGED_BODY = "email.password_changed.body";
     public static final String EMAIL_ACCOUNT_ACTIVATED_BODY = "email.account_activated.body";
     public static final String EMAIL_ACCOUNT_DEACTIVATED_BODY = "email.account_deactivated.body";
+    
+    // JWT Token Messages
+    public static final String JWT_TOKEN_EXPIRED = "jwt.token_expired";
+    public static final String JWT_TOKEN_INVALID = "jwt.token_invalid";
+    public static final String JWT_TOKEN_MALFORMED = "jwt.token_malformed";
+    public static final String JWT_TOKEN_REVOKED = "jwt.token_revoked";
+
 }

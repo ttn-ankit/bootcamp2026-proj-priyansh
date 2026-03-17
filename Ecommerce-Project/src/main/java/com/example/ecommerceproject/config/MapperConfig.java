@@ -16,4 +16,10 @@ public class MapperConfig {
         .setFieldMatchingEnabled(true);
         return modelMapper;
     }
+
+    @Bean
+    public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
+        return new com.fasterxml.jackson.databind.ObjectMapper();
+    }
 }
+    

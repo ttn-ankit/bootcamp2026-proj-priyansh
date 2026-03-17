@@ -9,6 +9,8 @@ import java.util.List;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,7 +55,7 @@ public class SellerServiceImpl implements SellerService {
     @Override
     @Transactional(readOnly = true)
     public SellerProfileResponseDTO getProfile(Long userId) {
-
+        validateUserAccess(userId);
         Seller seller = getActiveSellerByUserId(userId);
         User user = seller.getUser();
         List<Address> addresses = addressRepository.findByUserAndUserIsDeletedFalse(user);
@@ -71,7 +73,7 @@ public class SellerServiceImpl implements SellerService {
     @Override
     @Transactional
     public ApiResponseDTO updateProfile(Long userId, SellerProfileUpdateRequestDTO dto) {
-
+        validateUserAccess(userId);
         Seller seller = getActiveSellerByUserId(userId);
 
         modelMapper.map(dto, seller);
@@ -83,6 +85,7 @@ public class SellerServiceImpl implements SellerService {
     @Override
     @Transactional
     public ApiResponseDTO updatePassword(Long userId, PasswordUpdateRequestDTO dto) {
+        validateUserAccess(userId);
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
             throw new ApiException(messageService.get(MessageKeys.VALIDATION_PASSWORD_DO_NOT_MATCH), 400);
         }
@@ -103,6 +106,7 @@ public class SellerServiceImpl implements SellerService {
     @Override
     @Transactional
     public ApiResponseDTO updateAddress(Long userId, AddressPartialUpdateRequestDTO dto) {
+        validateUserAccess(userId);
         Seller seller = getActiveSellerByUserId(userId);
         Address address = addressRepository.findByUserAndUserIsDeletedFalse(seller.getUser()).stream().findFirst()
                 .orElseThrow(
@@ -145,4 +149,19 @@ public class SellerServiceImpl implements SellerService {
         }
     }
 
+    private void validateUserAccess(Long requestedUserId) {
+        Long authenticatedUserId = getCurrentUserId();
+        if (!requestedUserId.equals(authenticatedUserId)) {
+            throw new ApiException(messageService.get(MessageKeys.ERROR_ACCESS_DENIED), 403);
+        }
+    }
+
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            return userDetails.getUserId();
+        }
+        throw new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_AUTHENTICATED), 401);
+    }
 }

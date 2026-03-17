@@ -236,85 +236,71 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
-    public LoginResponseDTO refreshAccessToken(String refreshTokenValue) {
+        @Transactional
+        public LoginResponseDTO refreshAccessToken(String refreshTokenValue) {
 
-        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
-            throw new ApiException(MessageKeys.AUTH_TOKEN_REQUIRED, 401);
+            if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
+                throw new ApiException(MessageKeys.AUTH_TOKEN_REQUIRED, 401);
+            }
+
+            if (!jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
+                throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 401);
+            }
+
+            Claims claims = jwtUtil.extractAllClaims(refreshTokenValue);
+
+            Long userId = claims.get("userId", Long.class);
+            String email = claims.getSubject();
+            String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
+
+            if (userId == null || email == null || refreshId == null) {
+                throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 401);
+            }
+
+            RefreshToken existingToken = refreshTokenRepository.findByTokenId(refreshId)
+                    .orElseThrow(() -> new ApiException(
+                            MessageKeys.AUTH_REFRESH_TOKEN_REVOKED, 401));
+
+            if (existingToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+                service.deleteRefreshToken(refreshId);
+                throw new ApiException(MessageKeys.AUTH_REFRESH_TOKEN_EXPIRED, 401);
+            }
+
+            User user = userRepository.findWithRolesByEmailAndIsDeletedFalse(email)
+                    .orElseThrow(() -> new ApiException(
+                            MessageKeys.AUTH_USER_NOT_FOUND, 404));
+
+            if (!email.equalsIgnoreCase(user.getEmail())) {
+                throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 401);
+            }
+
+            // Delete old access token from database
+            service.deleteAccessToken(existingToken.getAccessTokenJti());
+
+            CustomUserDetails userDetails = new CustomUserDetails(user);
+            String newAccessToken = jwtUtil.generateToken(
+                    user.getId(),
+                    user.getEmail(),
+                    userDetails.getAuthorities());
+
+            String newAccessTokenJti = jwtUtil.extractJti(newAccessToken);
+            LocalDateTime newAccessTokenExpiry = LocalDateTime.now().plusMinutes(15);
+
+            // Store new access token in database
+            service.storeAccessToken(newAccessTokenJti, user, newAccessTokenExpiry);
+
+            // Update existing refresh token with new access token JTI (keep same refresh token)
+            existingToken.setAccessTokenJti(newAccessTokenJti);
+            existingToken.setAccessTokenExpiry(newAccessTokenExpiry);
+            // Note: We don't save explicitly as we're in a transactional context and using dirty checking
+
+            return new LoginResponseDTO(
+                    newAccessToken,
+                    refreshTokenValue, // Return the same refresh token value
+                    userDetails.getAuthorities().stream().toList(),
+                    user.getEmail(),
+                    messageService.get(MessageKeys.AUTH_REFRESH_SUCCESS));
         }
-
-        if (!jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
-            throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 401);
-        }
-
-        Claims claims = jwtUtil.extractAllClaims(refreshTokenValue);
-
-        Long userId = claims.get("userId", Long.class);
-        String email = claims.getSubject();
-        String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
-
-        if (userId == null || email == null || refreshId == null) {
-            throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 401);
-        }
-
-        RefreshToken existingToken = refreshTokenRepository.findByTokenId(refreshId)
-                .orElseThrow(() -> new ApiException(
-                        MessageKeys.AUTH_REFRESH_TOKEN_REVOKED, 401));
-
-        if (existingToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            service.deleteRefreshToken(refreshId);
-            throw new ApiException(MessageKeys.AUTH_REFRESH_TOKEN_EXPIRED, 401);
-        }
-
-        User user = userRepository.findWithRolesByEmailAndIsDeletedFalse(email)
-                .orElseThrow(() -> new ApiException(
-                        MessageKeys.AUTH_USER_NOT_FOUND, 404));
-
-        if (!email.equalsIgnoreCase(user.getEmail())) {
-            throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 401);
-        }
-
-        // Delete old access token from database
-        service.deleteAccessToken(existingToken.getAccessTokenJti());
-        
-        // Delete old refresh token
-        service.deleteRefreshToken(refreshId);
-        
-        CustomUserDetails userDetails = new CustomUserDetails(user);
-        String newAccessToken = jwtUtil.generateToken(
-                user.getId(),
-                user.getEmail(),
-                userDetails.getAuthorities());
-
-        String newAccessTokenJti = jwtUtil.extractJti(newAccessToken);
-        LocalDateTime newAccessTokenExpiry = LocalDateTime.now().plusMinutes(15);
-        
-        // Store new access token in database
-        service.storeAccessToken(newAccessTokenJti, user, newAccessTokenExpiry);
-        
-        String newRefreshId = UUID.randomUUID().toString();
-
-        RefreshToken newToken = new RefreshToken();
-        newToken.setUser(user);
-        newToken.setTokenId(newRefreshId);
-        newToken.setAccessTokenJti(newAccessTokenJti);
-        newToken.setExpiryDate(LocalDateTime.now().plusDays(1));
-        newToken.setAccessTokenExpiry(newAccessTokenExpiry);
-
-        refreshTokenRepository.save(newToken);
-
-        String newRefreshTokenValue = jwtUtil.generateRefreshToken(
-                user.getId(),
-                user.getEmail(),
-                newRefreshId);
-
-        return new LoginResponseDTO(
-                newAccessToken,
-                newRefreshTokenValue,
-                userDetails.getAuthorities().stream().toList(),
-                user.getEmail(),
-                messageService.get(MessageKeys.AUTH_REFRESH_SUCCESS));
-    }
 
     @Override
     @Transactional(readOnly = true)

@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +54,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional(readOnly = true)
     public CustomerProfileResponseDTO getProfile(Long userId) {
+        validateUserAccess(userId);
         Customer customer = getActiveCustomerByUserId(userId);
         User user = customer.getUser();
 
@@ -65,6 +68,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional
     public ApiResponseDTO updateProfile(Long userId, CustomerProfileUpdateRequestDTO dto) {
+        validateUserAccess(userId);
         Customer customer = getActiveCustomerByUserId(userId);
         User user = customer.getUser();
 
@@ -77,6 +81,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional
     public ApiResponseDTO updatePassword(Long userId, PasswordUpdateRequestDTO dto) {
+        validateUserAccess(userId);
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
             throw new ApiException(messageService.get(MessageKeys.VALIDATION_PASSWORDS_DO_NOT_MATCH), 400);
         }
@@ -96,6 +101,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional(readOnly = true)
     public List<AddressResponseDTO> getAddresses(Long userId) {
+        validateUserAccess(userId);
         User user = getActiveCustomerByUserId(userId).getUser();
 
         return addressRepository.findByUserAndUserIsDeletedFalse(user)
@@ -107,6 +113,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional
     public ApiResponseDTO addAddress(Long userId, AddressDTO dto) {
+        validateUserAccess(userId);
         User user = getActiveCustomerByUserId(userId).getUser();
         if (dto.getLabel() != AddressType.HOME) {
             throw new ApiException(messageService.get(MessageKeys.VALIDATION_INVALID_CUSTOMER_ADDRESS_LABEL), 400);
@@ -137,6 +144,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional
     public ApiResponseDTO updateAddress(Long userId, Long addressId, AddressPartialUpdateRequestDTO dto) {
+        validateUserAccess(userId);
         Address address = getValidAddressForUser(userId, addressId);
 
         mapper.map(dto, address);
@@ -147,6 +155,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional
     public ApiResponseDTO deleteAddress(Long userId, Long addressId) {
+        validateUserAccess(userId);
         Address address = getValidAddressForUser(userId, addressId);
         addressRepository.delete(address);
 
@@ -184,5 +193,21 @@ public class CustomerServiceImpl implements CustomerService {
             throw new ApiException(messageService.get(MessageKeys.ERROR_ADDRESS_PERMISSION_DENIED), 403);
         }
         return address;
+    }
+
+    private void validateUserAccess(Long requestedUserId) {
+        Long authenticatedUserId = getCurrentUserId();
+        if (!requestedUserId.equals(authenticatedUserId)) {
+            throw new ApiException(messageService.get(MessageKeys.ERROR_ACCESS_DENIED), 403);
+        }
+    }
+
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            return userDetails.getUserId();
+        }
+        throw new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_AUTHENTICATED), 401);
     }
 }

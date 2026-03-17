@@ -44,40 +44,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String email = null;
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-
             token = authHeader.substring(7);
+            
             try {
                 String jti = jwtUtil.extractJti(token);
-                // Check if access token exists and is valid in database
                 if (!userSessionService.isAccessTokenValid(jti)) {
                     filterChain.doFilter(request, response);
                     return;
                 }
+                
                 email = jwtUtil.extractEmail(token);
+                
             } catch (Exception e) {
                 filterChain.doFilter(request, response);
                 return;
             }
         }
 
-        if (email != null &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            try {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                if (jwtUtil.validateToken(token, userDetails)) {
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
 
-            if (jwtUtil.validateToken(token, userDetails)) {
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request));
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request));
-
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authentication);
+                    SecurityContextHolder.getContext()
+                            .setAuthentication(authentication);
+                }
+            } catch (Exception e) {
+                
             }
         }
 
