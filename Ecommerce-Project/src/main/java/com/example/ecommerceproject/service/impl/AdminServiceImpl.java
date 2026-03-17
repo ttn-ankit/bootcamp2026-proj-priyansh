@@ -192,13 +192,13 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public ApiResponse addMetadataField(String fieldName){
         if(metadataFieldRepository.existsByNameIgnoreCase(fieldName)){
-            throw new ApiException(MessageKeys.FIELD_VALUE_MUST_BE_UNIQUE, 400);
+            throw new ApiException(MessageKeys.METADATA_FIELD_VALUE_MUST_BE_UNIQUE, 400);
         }
 
         CategoryMetadataField field = new CategoryMetadataField();
         field.setName(fieldName);
         Long id = metadataFieldRepository.save(field).getId();
-        return new ApiResponse(MessageKeys.FIELD_CREATED_SUCCESSFULLY, id);
+        return new ApiResponse(MessageKeys.METADATA_FIELD_CREATED_SUCCESSFULLY, id);
     }
 
     @Override

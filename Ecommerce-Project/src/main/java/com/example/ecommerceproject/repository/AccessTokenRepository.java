@@ -17,12 +17,7 @@ public interface AccessTokenRepository extends JpaRepository<AccessToken, Long> 
 
     Optional<AccessToken> findByJti(String jti);
 
-    @Query("SELECT COUNT(a) > 0 FROM AccessToken a WHERE a.jti = :jti AND a.expiryDate > :now")
-    boolean existsByJtiAndNotExpired(@Param("jti") String jti, @Param("now") LocalDateTime now);
+    boolean existsByJti(String jti);
 
     void deleteByUser(User user);
-
-    @Modifying
-    @Query("DELETE FROM AccessToken a WHERE a.expiryDate < :cutoffDate")
-    int deleteExpiredTokens(@Param("cutoffDate") LocalDateTime cutoffDate);
 }

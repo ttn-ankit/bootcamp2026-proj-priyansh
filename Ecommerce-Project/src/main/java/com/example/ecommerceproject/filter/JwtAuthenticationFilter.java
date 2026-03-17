@@ -47,12 +47,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             token = authHeader.substring(7);
             
             try {
+                // 1. First validate JWT token (including expiry)
+                if (!jwtUtil.isTokenValid(token)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                
+                // 2. Then check if token exists in DB (not revoked)
                 String jti = jwtUtil.extractJti(token);
                 if (!userSessionService.isAccessTokenValid(jti)) {
                     filterChain.doFilter(request, response);
                     return;
                 }
                 
+                // 3. Extract email for user loading
                 email = jwtUtil.extractEmail(token);
                 
             } catch (Exception e) {
@@ -65,19 +73,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-                if (jwtUtil.validateToken(token, userDetails)) {
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities());
+                // JWT validation already done above, just set authentication
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities());
 
-                    authentication.setDetails(
-                            new WebAuthenticationDetailsSource()
-                                    .buildDetails(request));
+                authentication.setDetails(
+                        new WebAuthenticationDetailsSource()
+                                .buildDetails(request));
 
-                    SecurityContextHolder.getContext()
-                            .setAuthentication(authentication);
-                }
+                SecurityContextHolder.getContext()
+                        .setAuthentication(authentication);
             } catch (Exception e) {
                 
             }

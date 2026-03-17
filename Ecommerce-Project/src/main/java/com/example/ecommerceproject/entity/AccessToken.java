@@ -37,16 +37,12 @@ public class AccessToken {
     @JoinColumn(name = "user_id", nullable = false)
     User user;
 
-    @Column(name = "expiry_date", nullable = false)
-    LocalDateTime expiryDate;
-
     @Column(name = "created_at", nullable = false)
     LocalDateTime createdAt;
 
-    public AccessToken(String jti, User user, LocalDateTime expiryDate) {
+    public AccessToken(String jti, User user) {
         this.jti = jti;
         this.user = user;
-        this.expiryDate = expiryDate;
         this.createdAt = LocalDateTime.now();
     }
 }

@@ -63,8 +63,8 @@ public class UserSessionServiceImpl implements UserSessionService {
 
     @Override
     @Transactional
-    public void storeAccessToken(String jti, User user, LocalDateTime expiryDate) {
-        AccessToken accessToken = new AccessToken(jti, user, expiryDate);
+    public void storeAccessToken(String jti, User user) {
+        AccessToken accessToken = new AccessToken(jti, user);
         accessTokenRepository.save(accessToken);
     }
 
@@ -78,6 +78,8 @@ public class UserSessionServiceImpl implements UserSessionService {
     @Override
     @Transactional(readOnly = true)
     public boolean isAccessTokenValid(String jti) {
-        return accessTokenRepository.existsByJtiAndNotExpired(jti, LocalDateTime.now());
+        // Only check if token exists in DB (not revoked)
+        // JWT validation handles expiry
+        return accessTokenRepository.existsByJti(jti);
     }
 }

@@ -7,7 +7,7 @@ public interface UserSessionService {
 
     void deleteRefreshToken(String refreshId);
     
-    void storeAccessToken(String jti, User user, java.time.LocalDateTime expiryDate);
+    void storeAccessToken(String jti, User user);
     
     void deleteAccessToken(String jti);
     
