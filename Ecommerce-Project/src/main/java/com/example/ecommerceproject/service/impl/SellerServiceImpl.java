@@ -64,7 +64,7 @@ public class SellerServiceImpl implements SellerService {
         SellerProfileResponseDTO response = modelMapper.map(seller, SellerProfileResponseDTO.class);
         modelMapper.map(user, response);
         modelMapper.map(address, response);
-        response.setId(user.getId()); // ✅ Use User.id instead of Seller.id
+        response.setId(user.getId());
         response.setImage(computeImageUrl(user.getId(), seller));
         response.setAddressId(address.getId());
 
@@ -138,8 +138,6 @@ public class SellerServiceImpl implements SellerService {
         if (!userDir.exists() || !userDir.isDirectory()) {
             return null;
         }
-
-        // Try userId first, then seller.id as fallback
         Long[] idsToTry = {userId, seller != null ? seller.getId() : null};
         
         for (Long id : idsToTry) {

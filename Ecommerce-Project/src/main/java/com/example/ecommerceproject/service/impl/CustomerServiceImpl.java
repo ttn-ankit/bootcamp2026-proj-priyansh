@@ -178,8 +178,6 @@ public class CustomerServiceImpl implements CustomerService {
         if (!userDir.exists() || !userDir.isDirectory()) {
             return null;
         }
-
-        // Try userId first, then customer.id as fallback
         Long[] idsToTry = {userId, customer != null ? customer.getId() : null};
         
         for (Long id : idsToTry) {
