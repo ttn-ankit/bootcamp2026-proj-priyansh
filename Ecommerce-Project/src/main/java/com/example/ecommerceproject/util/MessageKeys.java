@@ -129,5 +129,15 @@ public final class MessageKeys {
     public static final String JWT_TOKEN_INVALID = "jwt.token_invalid";
     public static final String JWT_TOKEN_MALFORMED = "jwt.token_malformed";
     public static final String JWT_TOKEN_REVOKED = "jwt.token_revoked";
+    public static final String FIELD_VALUE_MUST_BE_UNIQUE = null;
+    public static final String FIELD_CREATED_SUCCESSFULLY = null;
+    public static final String INVALID_PARENT_CATEGORY_ID = null;
+    public static final String CATEGORY_NAME_MUST_BE_UNIQUE = null;
+    public static final String CATEGORY_NAME_MUST_BE_UNIQUE_WITHIN_PARENT = null;
+    public static final String CATEGORY_CREATED_SUCCESSFULLY = null;
+    public static final String INVALID_CATEGORY_ID = null;
+    public static final String CATEGORY_UPDATED_SUCCESSFULLY = null;
+    public static final String INVALID_METADATA_FIELD_ID = null;
+    public static final String METADATA_FIELDS_ADDED_TO_CATEGORY_SUCCESSFULLY = null;
 
 }

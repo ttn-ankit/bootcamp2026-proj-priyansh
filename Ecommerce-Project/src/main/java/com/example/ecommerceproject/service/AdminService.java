@@ -1,18 +1,28 @@
 package com.example.ecommerceproject.service;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 
+import com.example.ecommerceproject.dto.ApiResponse;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
+import com.example.ecommerceproject.dto.CategoryMetadataValueRequestDTO;
+import com.example.ecommerceproject.dto.CategoryResponseDTO;
 import com.example.ecommerceproject.dto.CustomerResponseDTO;
+import com.example.ecommerceproject.dto.MetadataFieldResponseDTO;
 import com.example.ecommerceproject.dto.SellerResponseDTO;
 
 public interface AdminService{
     Page<CustomerResponseDTO> getAllCustomers(int page, int size, String sort, String email);
     Page<SellerResponseDTO> getAllSellers(int page, int size, String sort, String email);
-
     ApiResponseDTO activateCustomer(Long customerId);
     ApiResponseDTO deactivateCustomer(Long customerId);
-
     ApiResponseDTO activateSeller(Long sellerId);
     ApiResponseDTO deactivateSeller(Long sellerId);
+    ApiResponse addMetadataField(String fieldName);
+    Page<MetadataFieldResponseDTO> getAllMetadataFields(String query, int max, int offset, String sort, String order);
+    ApiResponse addCategory(String categoryName, Long parentId);
+    Page<CategoryResponseDTO> getAllCategories(String query, Long categoryId, int max, int offset, String sort, String order);
+    ApiResponse updateCategory(Long categoryId, String categoryName);
+    ApiResponse addCategoryMetadataFieldValues(Long cateoryId, List<CategoryMetadataValueRequestDTO> fieldValues);
 }

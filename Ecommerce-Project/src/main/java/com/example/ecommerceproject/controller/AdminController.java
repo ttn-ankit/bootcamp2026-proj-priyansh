@@ -1,5 +1,7 @@
 package com.example.ecommerceproject.controller;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -7,12 +9,19 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.ecommerceproject.dto.ApiResponse;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
+import com.example.ecommerceproject.dto.CategoryMetadataValueRequestDTO;
+import com.example.ecommerceproject.dto.CategoryResponseDTO;
 import com.example.ecommerceproject.dto.CustomerResponseDTO;
+import com.example.ecommerceproject.dto.MetadataFieldResponseDTO;
 import com.example.ecommerceproject.dto.SellerResponseDTO;
 import com.example.ecommerceproject.service.AdminService;
 
@@ -114,4 +123,58 @@ public class AdminController {
         return ResponseEntity.ok(adminService.deactivateSeller(id));
     }
 
+    @Operation(summary = "Add a Metadata field", description = "Creates a new, uniquely named metadata field for categories.")
+    @PostMapping("/category/metadata-fields")
+    public ResponseEntity<ApiResponse> addMetadataField(
+            @Parameter(description = "Name of the metadata field to create", required = true) 
+            @RequestParam String fieldName) {
+        return ResponseEntity.ok(adminService.addMetadataField(fieldName));
+    }
+
+    @Operation(summary = "View all Metadata fields", description = "Fetches a paginated list of all metadata fields. Supports filtering by name.")
+    @GetMapping("/category/metadata-fields")
+    public ResponseEntity<Page<MetadataFieldResponseDTO>> viewAllMetadataFields(
+            @Parameter(description = "Maximum number of records to return") @RequestParam(defaultValue = "10") int max,
+            @Parameter(description = "Offset for pagination") @RequestParam(defaultValue = "0") int offset,
+            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "id") String sort,
+            @Parameter(description = "Sorting order (ASC or DESC)") @RequestParam(defaultValue = "ASC") String order,
+            @Parameter(description = "Optional query string to filter fields by name") @RequestParam(required = false) String query) {
+        return ResponseEntity.ok(adminService.getAllMetadataFields(query, max, offset, sort, order));
+    }
+
+    @Operation(summary = "Add a category", description = "Creates a new category. Can optionally be nested under a parent category.")
+    @PostMapping("/category")
+    public ResponseEntity<ApiResponse> addCategory(
+            @Parameter(description = "Name of the category", required = true) @RequestParam String categoryName,
+            @Parameter(description = "Optional ID of the parent category") @RequestParam(required = false) Long parentId) {
+        return ResponseEntity.ok(adminService.addCategory(categoryName, parentId));
+    }
+
+    @Operation(summary = "View all categories", description = "Fetches a paginated list of categories. Can be filtered by parent Category ID or name query.")
+    @GetMapping("/category/all")
+    public ResponseEntity<Page<CategoryResponseDTO>> viewAllCategories(
+            @Parameter(description = "Maximum number of records to return") @RequestParam(defaultValue = "10") int max,
+            @Parameter(description = "Offset for pagination") @RequestParam(defaultValue = "0") int offset,
+            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "id") String sort,
+            @Parameter(description = "Sorting order (ASC or DESC)") @RequestParam(defaultValue = "ASC") String order,
+            @Parameter(description = "Optional query string to filter categories by name") @RequestParam(required = false) String query,
+            @Parameter(description = "Optional ID to filter categories by their parent") @RequestParam(required = false) Long categoryId) {
+        return ResponseEntity.ok(adminService.getAllCategories(query, categoryId, max, offset, sort, order));
+    }
+
+    @Operation(summary = "Update a category", description = "Updates the name of an existing category.")
+    @PutMapping("/category/{categoryId}")
+    public ResponseEntity<ApiResponse> updateCategory(
+            @Parameter(description = "ID of the category to update", required = true) @PathVariable Long categoryId,
+            @Parameter(description = "New name for the category", required = true) @RequestParam String categoryName) {
+        return ResponseEntity.ok(adminService.updateCategory(categoryId, categoryName));
+    }
+
+    @Operation(summary = "Add metadata field values to a category", description = "Associates multiple metadata fields and their possible values to a specific category.")
+    @PostMapping("/category/{categoryId}/metadata-fields")
+    public ResponseEntity<ApiResponse> addCategoryMetadata(
+            @Parameter(description = "ID of the category", required = true) @PathVariable Long categoryId,
+            @RequestBody List<CategoryMetadataValueRequestDTO> fieldValues) {
+        return ResponseEntity.ok(adminService.addCategoryMetadataFieldValues(categoryId, fieldValues));
+    }
 }
