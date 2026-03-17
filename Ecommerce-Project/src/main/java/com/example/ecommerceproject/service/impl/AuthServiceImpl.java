@@ -171,6 +171,7 @@ public class AuthServiceImpl implements AuthService {
             String refreshId = UUID.randomUUID().toString();
             refreshToken.setTokenId(refreshId);
             refreshToken.setAccessTokenJti(accessTokenJti);
+            refreshToken.setCreatedAt(LocalDateTime.now());
             refreshTokenRepository.save(refreshToken);
 
             String refreshTokenValue = jwtUtil.generateRefreshToken(userDetails.getUserId(), userDetails.getUsername(),

@@ -75,6 +75,7 @@ public final class MessageKeys {
     public static final String VALIDATION_PAGE_SIZE_MAX = "validation.page_size_max";
     public static final String VALIDATION_CUSTOMER_ID_POSITIVE = "validation.customer_id_positive";
     public static final String VALIDATION_SELLER_ID_POSITIVE = "validation.seller_id_positive";
+    public static final String VALIDATION_USER_ID_POSITIVE = "validation.user_id_positive";
     public static final String VALIDATION_INVALID_SELLER_ADDRESS_LABEL = "validation.invalid_seller_address_label";
     public static final String VALIDATION_INVALID_CUSTOMER_ADDRESS_LABEL = "validation.invalid_customer_address_label";
     public static final String VALIDATION_SELLER_SINGLE_ADDRESS = "validation.seller_single_address";
@@ -95,6 +96,8 @@ public final class MessageKeys {
     public static final String ADMIN_CUSTOMER_DEACTIVATED = "admin.customer_deactivated";
     public static final String ADMIN_SELLER_ACTIVATED = "admin.seller_activated";
     public static final String ADMIN_SELLER_DEACTIVATED = "admin.seller_deactivated";
+    public static final String ADMIN_USER_ACTIVATED = "admin.user_activated";
+    public static final String ADMIN_USER_DEACTIVATED = "admin.user_deactivated";
 
     // Customer Service Messages
     public static final String CUSTOMER_PROFILE_UPDATED = "customer.profile_updated";

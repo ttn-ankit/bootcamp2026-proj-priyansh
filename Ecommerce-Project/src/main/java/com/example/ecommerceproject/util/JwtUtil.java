@@ -105,16 +105,12 @@ public class JwtUtil {
         }
 
         public boolean isRefreshTokenValid(String token) {
-                try {
-                        Claims claims = extractAllClaims(token);
-                        String purpose = claims.get(CLAIM_PURPOSE, String.class);
-                        if (!PURPOSE_REFRESH.equals(purpose)) {
-                                return false;
-                        }
-                        return claims.getExpiration().after(new Date());
-                } catch (Exception e) {
+                Claims claims = extractAllClaims(token);
+                String purpose = claims.get(CLAIM_PURPOSE, String.class);
+                if (!PURPOSE_REFRESH.equals(purpose)) {
                         return false;
                 }
+                return claims.getExpiration().after(new Date());
         }
 
         public String extractJti(String token) {
@@ -166,15 +162,11 @@ public class JwtUtil {
         }
         
         public boolean isTokenValid(String token) {
-                try {
-                        Claims claims = extractAllClaims(token);
-                        String purpose = claims.get(CLAIM_PURPOSE, String.class);
-                        if (purpose != null && !PURPOSE_ACCESS.equals(purpose)) {
-                                return false;
-                        }
-                        return claims.getExpiration().after(new Date());
-                } catch (Exception e) {
+                Claims claims = extractAllClaims(token);
+                String purpose = claims.get(CLAIM_PURPOSE, String.class);
+                if (purpose != null && !PURPOSE_ACCESS.equals(purpose)) {
                         return false;
                 }
+                return claims.getExpiration().after(new Date());
         }
 }

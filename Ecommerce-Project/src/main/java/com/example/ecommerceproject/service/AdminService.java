@@ -15,10 +15,8 @@ import com.example.ecommerceproject.dto.SellerResponseDTO;
 public interface AdminService{
     Page<CustomerResponseDTO> getAllCustomers(int page, int size, String sort, String email);
     Page<SellerResponseDTO> getAllSellers(int page, int size, String sort, String email);
-    ApiResponseDTO activateCustomer(Long customerId);
-    ApiResponseDTO deactivateCustomer(Long customerId);
-    ApiResponseDTO activateSeller(Long sellerId);
-    ApiResponseDTO deactivateSeller(Long sellerId);
+    ApiResponseDTO activateUser(Long userId);
+    ApiResponseDTO deactivateUser(Long userId);
     ApiResponse addMetadataField(String fieldName);
     Page<MetadataFieldResponseDTO> getAllMetadataFields(String query, int max, int offset, String sort, String order);
     ApiResponse addCategory(String categoryName, Long parentId);

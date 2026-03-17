@@ -11,9 +11,11 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.example.ecommerceproject.service.MessageService;
 import com.example.ecommerceproject.service.UserSessionService;
 import com.example.ecommerceproject.service.impl.CustomUserDetailsServiceImpl;
 import com.example.ecommerceproject.util.JwtUtil;
+import com.example.ecommerceproject.util.MessageKeys;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -30,6 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     final JwtUtil jwtUtil;
     final CustomUserDetailsServiceImpl userDetailsService;
     final UserSessionService userSessionService;
+    final MessageService messageService;
 
     @Override
     protected void doFilterInternal(
@@ -47,24 +50,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             token = authHeader.substring(7);
             
             try {
-                // 1. First validate JWT token (including expiry)
                 if (!jwtUtil.isTokenValid(token)) {
                     filterChain.doFilter(request, response);
                     return;
                 }
                 
-                // 2. Then check if token exists in DB (not revoked)
                 String jti = jwtUtil.extractJti(token);
                 if (!userSessionService.isAccessTokenValid(jti)) {
                     filterChain.doFilter(request, response);
                     return;
                 }
                 
-                // 3. Extract email for user loading
                 email = jwtUtil.extractEmail(token);
                 
+            } catch (io.jsonwebtoken.ExpiredJwtException e) {
+                writeJwtErrorResponse(response, MessageKeys.JWT_TOKEN_EXPIRED);
+                return;
+            } catch (io.jsonwebtoken.MalformedJwtException e) {
+                writeJwtErrorResponse(response, MessageKeys.JWT_TOKEN_MALFORMED);
+                return;
+            } catch (io.jsonwebtoken.JwtException e) {
+                writeJwtErrorResponse(response, MessageKeys.JWT_TOKEN_INVALID);
+                return;
             } catch (Exception e) {
-                filterChain.doFilter(request, response);
+                writeJwtErrorResponse(response, MessageKeys.JWT_TOKEN_INVALID);
                 return;
             }
         }
@@ -73,7 +82,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-                // JWT validation already done above, just set authentication
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,
@@ -91,5 +99,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void writeJwtErrorResponse(HttpServletResponse response, String messageKey) throws IOException {
+        String message = messageService.get(messageKey);
+        
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        
+        String jsonResponse = String.format(
+            "{\"timestamp\":\"%s\",\"message\":\"%s\",\"status\":%d}",
+            java.time.LocalDateTime.now().toString(),
+            message,
+            HttpServletResponse.SC_UNAUTHORIZED
+        );
+        
+        response.getWriter().write(jsonResponse);
     }
 }

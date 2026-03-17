@@ -80,47 +80,25 @@ public class AdminController {
     }
 
     @Operation(summary = "Activate a customer account", description = "Activates a currently deactivated customer account. Sends an email notification to the customer.")
-    @PatchMapping("/customer/{id}/activate")
-    public ResponseEntity<ApiResponseDTO> activateCustomer(
-        @Parameter(description = "ID of the customer to activate", required = true)
+    @PatchMapping("/user/{userId}/activate")
+    public ResponseEntity<ApiResponseDTO> activateUser(
+        @Parameter(description = "User ID to activate", required = true)
         @PathVariable 
-        @Positive(message = "{validation.customer_id_positive}") Long id)
+        @Positive(message = "{validation.user_id_positive}") Long userId)
     {
-        return ResponseEntity.ok(adminService.activateCustomer(id));
+        return ResponseEntity.ok(adminService.activateUser(userId));
     }
 
     @Operation(summary = "Deactivate a customer account", description = "Deactivates a currently active customer account. Sends an email notification to the customer.")
-    @PatchMapping("/customer/{id}/deactivate")
-    public ResponseEntity<ApiResponseDTO> deactivateCustomer(
-        @Parameter(description = "ID of the customer to deactivate", required = true)
+    @PatchMapping("/user/{userId}/deactivate")
+    public ResponseEntity<ApiResponseDTO> deactivateUser(
+        @Parameter(description = "User ID to deactivate", required = true)
         @PathVariable
-        @Positive(message = "{validation.customer_id_positive}")
-        Long id
+        @Positive(message = "{validation.user_id_positive}")
+        Long userId
     )
     {
-        return ResponseEntity.ok(adminService.deactivateCustomer(id));
-    }
-
-    @Operation(summary = "Activate a seller account", description = "Activates a currently deactivated seller account. Sends an email notification to the seller.")
-    @PatchMapping("/seller/{id}/activate")
-    public ResponseEntity<ApiResponseDTO> activateSeller(
-        @Parameter(description = "ID of the seller to activate", required = true)
-        @PathVariable 
-        @Positive(message = "{validation.seller_id_positive}") Long id)
-    {
-        return ResponseEntity.ok(adminService.activateSeller(id));
-    }
-
-    @Operation(summary = "Deactivate a seller account", description = "Deactivates a currently active seller account. Sends an email notification to the seller.")
-    @PatchMapping("/seller/{id}/deactivate")
-    public ResponseEntity<ApiResponseDTO> deactivateSeller(
-        @Parameter(description = "ID of the seller to deactivate", required = true)
-        @PathVariable
-        @Positive(message = "{validation.customer_id_positive}")
-        Long id
-    )
-    {
-        return ResponseEntity.ok(adminService.deactivateSeller(id));
+        return ResponseEntity.ok(adminService.deactivateUser(userId));
     }
 
     @Operation(summary = "Add a Metadata field", description = "Creates a new, uniquely named metadata field for categories.")

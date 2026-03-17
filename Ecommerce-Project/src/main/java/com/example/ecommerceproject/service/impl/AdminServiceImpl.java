@@ -35,6 +35,7 @@ import com.example.ecommerceproject.repository.CategoryMetadataFieldValuesReposi
 import com.example.ecommerceproject.repository.CategoryRepository;
 import com.example.ecommerceproject.repository.CustomerRepository;
 import com.example.ecommerceproject.repository.SellerRepository;
+import com.example.ecommerceproject.repository.UserRepository;
 import com.example.ecommerceproject.service.AdminService;
 import com.example.ecommerceproject.service.EmailService;
 import com.example.ecommerceproject.service.UserSessionService;
@@ -52,6 +53,7 @@ public class AdminServiceImpl implements AdminService {
 
     final CustomerRepository customerRepository;
     final SellerRepository sellerRepository;
+    final UserRepository userRepository;
     final AddressRepository addressRepository;
     final EmailService emailService;
     final MessageService messageService;
@@ -106,11 +108,10 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public ApiResponseDTO activateCustomer(Long customerId) {
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND, 404));
+    public ApiResponseDTO activateUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 404));
 
-        User user = customer.getUser();
         validateUserNotDeleted(user);
 
         if (user.isActive()) {
@@ -120,15 +121,14 @@ public class AdminServiceImpl implements AdminService {
         user.setActive(true);
         emailService.sendAccountActivationEmail(user.getEmail());
 
-        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_CUSTOMER_ACTIVATED), 200);
+        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_USER_ACTIVATED), 200);
     }
 
     @Override
     @Transactional
-    public ApiResponseDTO deactivateCustomer(Long customerId) {
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_CUSTOMER_NOT_FOUND, 404));
-        User user = customer.getUser();
+    public ApiResponseDTO deactivateUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 404));
 
         validateUserNotDeleted(user);
         validateNotProtectedAdmin(user);
@@ -143,50 +143,10 @@ public class AdminServiceImpl implements AdminService {
 
         emailService.sendAccountDeactivationEmail(user.getEmail());
 
-        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_CUSTOMER_DEACTIVATED), 200);
+        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_USER_DEACTIVATED), 200);
     }
 
-    @Override
-    @Transactional
-    public ApiResponseDTO activateSeller(Long sellerId) {
-        Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_SELLER_NOT_FOUND, 404));
-        User user = seller.getUser();
 
-        validateUserNotDeleted(user);
-
-        if (user.isActive()) {
-            throw new ApiException(MessageKeys.VALIDATION_USER_ALREADY_ACTIVATED, 400);
-        }
-
-        user.setActive(true);
-        emailService.sendAccountActivationEmail(user.getEmail());
-
-        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_SELLER_ACTIVATED), 200);
-    }
-
-    @Override
-    @Transactional
-    public ApiResponseDTO deactivateSeller(Long sellerId) {
-        Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_SELLER_NOT_FOUND, 404));
-        User user = seller.getUser();
-
-        validateUserNotDeleted(user);
-        validateNotProtectedAdmin(user);
-
-        if (!user.isActive()) {
-            throw new ApiException(MessageKeys.VALIDATION_USER_ALREADY_DEACTIVATED, 400);
-        }
-
-        user.setActive(false);
-
-        userSessionService.revokeAllRefreshTokens(user);
-
-        emailService.sendAccountDeactivationEmail(user.getEmail());
-
-        return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_SELLER_DEACTIVATED), 200);
-    }
 
     @Override
     @Transactional
@@ -281,7 +241,7 @@ public class AdminServiceImpl implements AdminService {
             CategoryMetadataFieldValues values = new CategoryMetadataFieldValues();
             values.setCategory(category);
             values.setMetadataField(metadataField);
-            values.setValues(dto.getValue());
+            values.setValue(dto.getValue());
             metadataFieldValuesRepository.save(values);
         }
         return new ApiResponse(MessageKeys.METADATA_FIELDS_ADDED_TO_CATEGORY_SUCCESSFULLY);

@@ -14,7 +14,7 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(level = PRIVATE)
 @Table(
         uniqueConstraints = @UniqueConstraint(
-                columnNames = {"category_id", "metadata_field_id", "values"}
+                columnNames = {"category_id", "category_metadata_id", "value"}
         )
 )
 public class CategoryMetadataFieldValues {
@@ -23,7 +23,7 @@ public class CategoryMetadataFieldValues {
     Long id;
     
     @Column(nullable = false)
-    String values;
+    String value;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
