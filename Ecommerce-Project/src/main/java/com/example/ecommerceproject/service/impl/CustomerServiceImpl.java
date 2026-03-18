@@ -59,6 +59,7 @@ public class CustomerServiceImpl implements CustomerService {
         User user = customer.getUser();
 
         CustomerProfileResponseDTO dto = mapper.map(customer, CustomerProfileResponseDTO.class);
+        dto.setId(userId);
         mapper.map(user, dto);
         dto.setId(user.getId());
         dto.setImage(computeImageUrl(userId, customer));
@@ -118,21 +119,6 @@ public class CustomerServiceImpl implements CustomerService {
         User user = getActiveCustomerByUserId(userId).getUser();
         if (dto.getLabel() != AddressType.HOME) {
             throw new ApiException(messageService.get(MessageKeys.VALIDATION_INVALID_CUSTOMER_ADDRESS_LABEL), 400);
-        }
-
-        boolean exists = addressRepository
-                .existsByUserAndAddressLineIgnoreCaseAndCityIgnoreCaseAndCountryIgnoreCaseAndStateIgnoreCaseAndZipCode(
-                        user,
-                        dto.getAddressLine(),
-                        dto.getCity(),
-                        dto.getCountry(),
-                        dto.getState(),
-                        dto.getZipCode());
-
-        if (exists) {
-            throw new ApiException(
-                    messageService.get(MessageKeys.CUSTOMER_ADDRESS_ALREADY_EXISTS),
-                    409);
         }
 
         Address address = mapper.map(dto, Address.class);

@@ -63,6 +63,8 @@ public class UserSessionServiceImpl implements UserSessionService {
     @Override
     @Transactional
     public void storeAccessToken(String jti, User user) {
+        // Note: Access tokens are already deleted by revokeAllRefreshTokens in login flow
+        // This method just stores the new access token
         AccessToken accessToken = new AccessToken(jti, user);
         accessTokenRepository.save(accessToken);
     }

@@ -12,12 +12,4 @@ public interface AddressRepository extends JpaRepository<Address, Long>{
     List<Address> findByUserAndUserIsDeletedFalse(User user);
     Optional<Address> findByIdAndIsDeletedFalse(Long id);
     long countByUser(User user);
-    boolean existsByUserAndAddressLineIgnoreCaseAndCityIgnoreCaseAndCountryIgnoreCaseAndStateIgnoreCaseAndZipCode(
-        User user,
-        String addressLine,
-        String city,
-        String country,
-        String state,
-        String zipCode
-    );
 }
