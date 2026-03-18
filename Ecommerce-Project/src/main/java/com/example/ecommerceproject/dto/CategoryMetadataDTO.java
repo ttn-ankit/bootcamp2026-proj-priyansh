@@ -14,8 +14,8 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @FieldDefaults(level = PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CategoryResponseDTO {
-    Long id;
-    String name;
-    Long parentCategoryId;
+public class CategoryMetadataDTO {
+    Long metadataFieldId;
+    String fieldName;
+    String possibleValues;
 }

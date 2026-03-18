@@ -7,6 +7,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -50,5 +53,11 @@ public class SellerProfileController {
             @PathVariable Long userId,
             @Valid @RequestBody AddressPartialUpdateRequestDTO dto) {
         return ResponseEntity.ok(sellerService.updateAddress(userId, dto));
+    }
+
+    @Operation(summary = "List all leaf categories", description = "Fetches all leaf node categories along with their parent chain details and metadata fields.")
+    @GetMapping
+    public ResponseEntity<List<SellerCategoryResponseDTO>> listAllCategories() {
+        return ResponseEntity.ok(sellerService.getAllLeafCategories());
     }
 }

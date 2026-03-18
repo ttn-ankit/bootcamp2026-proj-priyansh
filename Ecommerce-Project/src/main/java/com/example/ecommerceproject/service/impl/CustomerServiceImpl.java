@@ -4,29 +4,40 @@ import static lombok.AccessLevel.PRIVATE;
 import java.io.File;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.example.ecommerceproject.dto.AddressDTO;
 import com.example.ecommerceproject.dto.AddressPartialUpdateRequestDTO;
 import com.example.ecommerceproject.dto.AddressResponseDTO;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
+import com.example.ecommerceproject.dto.CategoryFilterDetailsDTO;
+import com.example.ecommerceproject.dto.CategoryMetadataDTO;
+import com.example.ecommerceproject.dto.CategoryResponseDTO;
 import com.example.ecommerceproject.dto.CustomerProfileResponseDTO;
 import com.example.ecommerceproject.dto.CustomerProfileUpdateRequestDTO;
 import com.example.ecommerceproject.dto.PasswordUpdateRequestDTO;
 import com.example.ecommerceproject.entity.Address;
+import com.example.ecommerceproject.entity.Category;
 import com.example.ecommerceproject.entity.Customer;
 import com.example.ecommerceproject.entity.User;
 import com.example.ecommerceproject.enums.AddressType;
 import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.repository.AddressRepository;
+import com.example.ecommerceproject.repository.CategoryRepository;
 import com.example.ecommerceproject.repository.CustomerRepository;
+import com.example.ecommerceproject.repository.ProductRepository;
 import com.example.ecommerceproject.service.CustomerService;
 import com.example.ecommerceproject.service.EmailService;
 import com.example.ecommerceproject.service.MessageService;
@@ -45,6 +56,8 @@ public class CustomerServiceImpl implements CustomerService {
 
     final CustomerRepository customerRepository;
     final AddressRepository addressRepository;
+    final CategoryRepository categoryRepository;
+    final ProductRepository productRepository;
     final PasswordEncoder passwordEncoder;
     final EmailService emailService;
     final MessageService messageService;
@@ -159,33 +172,98 @@ public class CustomerServiceImpl implements CustomerService {
         return customer;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryResponseDTO> getCategories(Long categoryId) {
+        List<Category> categories;
+
+        if (categoryId == null) {
+            categories = categoryRepository.findByParentCategoryIsNull();
+        } else {
+            if (!categoryRepository.existsById(categoryId)) {
+                throw new ApiException(MessageKeys.INVALID_CATEGORY_ID, 400);
+            }
+            categories = categoryRepository.findByParentCategoryId(categoryId);
+        }
+
+        return categories.stream().map(cat -> {
+            CategoryResponseDTO dto = new CategoryResponseDTO();
+            dto.setId(cat.getId());
+            dto.setName(cat.getName());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CategoryFilterDetailsDTO getCategoryFilteringDetails(Long categoryId){
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Category ID"));
+
+        CategoryFilterDetailsDTO filterDTO = new CategoryFilterDetailsDTO();
+
+        List<CategoryMetadataDTO> metadataList = category.getFieldValues().stream().map(fv -> {
+            CategoryMetadataDTO metaDTO = new CategoryMetadataDTO();
+            metaDTO.setMetadataFieldId(fv.getMetadataField().getId());
+            metaDTO.setFieldName(fv.getMetadataField().getName());
+            metaDTO.setPossibleValues(fv.getValue());
+            return metaDTO;
+        }).collect(Collectors.toList());
+        
+        filterDTO.setMetadataFields(metadataList);
+
+        List<Long> allRelatedCategoryIds = new ArrayList<>();
+        collectCategoryIdsRecursively(category, allRelatedCategoryIds);
+        
+        filterDTO.setBrands(productRepository.findDistinctBrandsByCategoryIds(allRelatedCategoryIds));
+        
+        Double minPrice = productRepository.findMinPriceByCategoryIds(allRelatedCategoryIds);
+        Double maxPrice = productRepository.findMaxPriceByCategoryIds(allRelatedCategoryIds);
+        
+        filterDTO.setMinPrice(minPrice != null ? minPrice : 0.0);
+        filterDTO.setMaxPrice(maxPrice != null ? maxPrice : 0.0);
+
+        return filterDTO;
+    }
+
     private String computeImageUrl(Long userId, Customer customer) {
         File userDir = Paths.get(basePath, "users").toFile();
         if (!userDir.exists() || !userDir.isDirectory()) {
             return null;
         }
-        Long[] idsToTry = {userId, customer != null ? customer.getId() : null};
-        
+        Long[] idsToTry = { userId, customer != null ? customer.getId() : null };
+
         for (Long id : idsToTry) {
-            if (id == null) continue;
-            
+            if (id == null)
+                continue;
+
             String imageUrl = findImageForId(userDir, id);
             if (imageUrl != null) {
                 return imageUrl;
             }
         }
-        
+
         return null;
+    }
+
+    private void collectCategoryIdsRecursively(Category category, List<Long> ids) {
+        ids.add(category.getId()); 
+        
+        if (category.getSubCategories() != null && !category.getSubCategories().isEmpty()) {
+            for (Category child : category.getSubCategories()) {
+                collectCategoryIdsRecursively(child, ids);
+            }
+        }
     }
 
     private String findImageForId(File directory, Long id) {
         File[] files = directory.listFiles((dir, name) -> {
             String lowerName = name.toLowerCase();
-            return lowerName.startsWith(id + ".") && 
-                   (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || 
-                    lowerName.endsWith(".png") || lowerName.endsWith(".gif"));
+            return lowerName.startsWith(id + ".") &&
+                    (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") ||
+                            lowerName.endsWith(".png") || lowerName.endsWith(".gif"));
         });
-        
+
         return (files != null && files.length > 0) ? "/images/users/" + files[0].getName() : null;
     }
 

@@ -14,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@SQLDelete(sql = "UPDATE users SET is_deleted = true WHERE id=?")
+@SQLDelete(sql = "UPDATE product SET is_deleted = true WHERE id=?")
 @SQLRestriction("is_deleted = false")
 public class Product {
     @Id
@@ -38,6 +38,8 @@ public class Product {
 
     @Column(name = "is_deleted")
     Boolean deleted = false;
+
+    String brand;
 
     @ManyToOne
     @JoinColumn(name = "seller_user_id")

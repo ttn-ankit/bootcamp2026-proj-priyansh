@@ -6,6 +6,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,14 +18,18 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.ecommerceproject.dto.AddressPartialUpdateRequestDTO;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
+import com.example.ecommerceproject.dto.CategoryMetadataDTO;
 import com.example.ecommerceproject.dto.PasswordUpdateRequestDTO;
+import com.example.ecommerceproject.dto.SellerCategoryResponseDTO;
 import com.example.ecommerceproject.dto.SellerProfileResponseDTO;
 import com.example.ecommerceproject.dto.SellerProfileUpdateRequestDTO;
 import com.example.ecommerceproject.entity.Address;
+import com.example.ecommerceproject.entity.Category;
 import com.example.ecommerceproject.entity.Seller;
 import com.example.ecommerceproject.entity.User;
 import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.repository.AddressRepository;
+import com.example.ecommerceproject.repository.CategoryRepository;
 import com.example.ecommerceproject.repository.SellerRepository;
 import com.example.ecommerceproject.service.EmailService;
 import com.example.ecommerceproject.service.MessageService;
@@ -46,6 +51,7 @@ public class SellerServiceImpl implements SellerService {
 
     final SellerRepository sellerRepository;
     final AddressRepository addressRepository;
+    final CategoryRepository categoryRepository;
     final PasswordEncoder passwordEncoder;
     final EmailService emailService;
     final MessageService messageService;
@@ -120,6 +126,45 @@ public class SellerServiceImpl implements SellerService {
         modelMapper.map(dto, address);
 
         return new ApiResponseDTO(messageService.get(MessageKeys.SELLER_ADDRESS_UPDATED), 200);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SellerCategoryResponseDTO> getAllLeafCategories(){
+        List<Category> leafNodes = categoryRepository.findAllLeafNodes();
+        return leafNodes.stream().map(this::mapToSellerCategoryDTO).collect(Collectors.toList());
+    }
+
+
+    private SellerCategoryResponseDTO mapToSellerCategoryDTO(Category category) {
+        SellerCategoryResponseDTO dto = new SellerCategoryResponseDTO();
+        dto.setCategoryId(category.getId());
+        dto.setCategoryName(category.getName());
+        dto.setParentChain(buildParentChain(category));
+        
+        List<CategoryMetadataDTO> metadataDTOs = category.getFieldValues().stream().map(fv -> {
+            CategoryMetadataDTO metaDto = new CategoryMetadataDTO();
+            metaDto.setMetadataFieldId(fv.getMetadataField().getId());
+            metaDto.setFieldName(fv.getMetadataField().getName());
+            metaDto.setPossibleValues(fv.getValue());
+            return metaDto;
+        }).collect(Collectors.toList());
+        
+        dto.setMetadataFields(metadataDTOs);
+
+        return dto;
+    }
+
+    private String buildParentChain(Category category) {
+        StringBuilder chain = new StringBuilder(category.getName());
+        Category parent = category.getParentCategory();
+        
+        while (parent != null) {
+            chain.insert(0, parent.getName() + " > ");
+            parent = parent.getParentCategory();
+        }
+        
+        return chain.toString();
     }
 
     private Seller getActiveSellerByUserId(Long userId) {
