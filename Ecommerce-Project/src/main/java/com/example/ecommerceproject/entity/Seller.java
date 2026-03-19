@@ -16,7 +16,7 @@ import com.example.ecommerceproject.audit.Auditable;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = PRIVATE)
-@SQLDelete(sql = "UPDATE users SET is_deleted = true WHERE id=?")
+@SQLDelete(sql = "UPDATE seller SET is_deleted = true WHERE id=?")
 @SQLRestriction("is_deleted = false")
 public class Seller extends Auditable{
     @Id

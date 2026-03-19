@@ -1,6 +1,7 @@
 package com.example.ecommerceproject.entity;
 
 import com.example.ecommerceproject.enums.AddressType;
+
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -10,6 +11,19 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Table(
+        name = "Address",
+        uniqueConstraints = @UniqueConstraint(
+                columnNames = {
+                        "user_id",
+                        "address_line",
+                        "city",
+                        "state",
+                        "country",
+                        "zip_code"
+                }
+        )
+)
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Address {
     @Id
@@ -32,8 +46,11 @@ public class Address {
     String zipCode;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "address_type", nullable = false)
     AddressType label;
+
+    @Column(name = "is_deleted")
+    boolean isDeleted;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")

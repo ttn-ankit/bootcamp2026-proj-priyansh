@@ -1,12 +1,15 @@
 package com.example.ecommerceproject.bootstrap;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import com.example.ecommerceproject.constants.MessageKeys;
+import com.example.ecommerceproject.util.MessageKeys;
 import com.example.ecommerceproject.entity.Role;
 import com.example.ecommerceproject.entity.User;
 import com.example.ecommerceproject.entity.UserRole;
@@ -17,18 +20,22 @@ import com.example.ecommerceproject.repository.UserRepository;
 import com.example.ecommerceproject.repository.UserRoleRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Component
 @RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE)
 public class AdminBootstrap implements CommandLineRunner {
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final UserRoleRepository userRoleRepository;
-    private final PasswordEncoder passwordEncoder;
+    final UserRepository userRepository;
+    final RoleRepository roleRepository;
+    final UserRoleRepository userRoleRepository;
+    final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
+
+        seedRoles();
 
         if(userRepository.existsByEmailIgnoreCase(MessageKeys.PROTECTED_ADMIN_EMAIL)){
             return;
@@ -50,7 +57,7 @@ public class AdminBootstrap implements CommandLineRunner {
         userRepository.save(admin);
 
         Role role = roleRepository.findByAuthority(RoleEnums.ROLE_ADMIN)
-                .orElseThrow(() -> new RuntimeException("Admin role missing"));
+                .orElseThrow(() -> new RuntimeException("error.internal_server"));
 
         UserRole userRole = new UserRole(
                 new UserRoleId(admin.getId(), role.getId()),
@@ -59,5 +66,20 @@ public class AdminBootstrap implements CommandLineRunner {
         );
 
         userRoleRepository.save(userRole);
+    }
+
+    private void seedRoles() {
+
+        if (!roleRepository.existsByAuthority(RoleEnums.ROLE_ADMIN)) {
+            roleRepository.save(new Role(null, RoleEnums.ROLE_ADMIN, new ArrayList<>()));
+        }
+
+        if (!roleRepository.existsByAuthority(RoleEnums.ROLE_CUSTOMER)) {
+            roleRepository.save(new Role(null, RoleEnums.ROLE_CUSTOMER, new ArrayList<>()));
+        }
+
+        if (!roleRepository.existsByAuthority(RoleEnums.ROLE_SELLER)) {
+            roleRepository.save(new Role(null, RoleEnums.ROLE_SELLER, new ArrayList<>()));
+        }
     }
 }

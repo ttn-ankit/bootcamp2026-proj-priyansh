@@ -12,7 +12,7 @@ import com.example.ecommerceproject.entity.User;
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
 
-    Optional<RefreshToken> findByTokenIdAndRevokedFalse(String tokenId);
+    Optional<RefreshToken> findByTokenId(String tokenId);
 
     List<RefreshToken> findAllByUser(User user);
 }

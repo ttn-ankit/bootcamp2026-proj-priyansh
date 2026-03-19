@@ -1,23 +1,33 @@
 package com.example.ecommerceproject.service.impl;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import com.example.ecommerceproject.service.EmailService;
+import com.example.ecommerceproject.service.MessageService;
+import com.example.ecommerceproject.util.MessageKeys;
+
+import lombok.experimental.FieldDefaults;
 
 @Service
+@FieldDefaults(level = PRIVATE)
 public class EmailServiceImpl implements EmailService {
 
-    private final String from;
-    private final JavaMailSender mailSender;
+    final String from;
+    final JavaMailSender mailSender;
+    final MessageService messageService;
 
     public EmailServiceImpl(
             JavaMailSender mailSender,
-            @Value("${spring.mail.username}") String from) {
+            @Value("${spring.mail.username}") String from,
+            MessageService messageService) {
         this.mailSender = mailSender;
         this.from = from;
+        this.messageService = messageService;
     }
 
     @Override
@@ -28,19 +38,8 @@ public class EmailServiceImpl implements EmailService {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setFrom(from);
         mailMessage.setTo(toEmail);
-        mailMessage.setSubject("Activate your account");
-        mailMessage.setText(
-                """
-                        Welcome to Ecommerce Platform!
-
-                        Please activate your account using the link below:
-
-                        %s
-
-                        This link will expire in 3 hours.
-
-                        If you did not register, ignore this email.
-                        """.formatted(activationLink));
+        mailMessage.setSubject(messageService.get(MessageKeys.EMAIL_ACTIVATION_SUBJECT));
+        mailMessage.setText(messageService.get(MessageKeys.EMAIL_ACTIVATION_BODY, activationLink));
         mailSender.send(mailMessage);
     }
 
@@ -51,21 +50,8 @@ public class EmailServiceImpl implements EmailService {
         SimpleMailMessage mail = new SimpleMailMessage();
 
         mail.setTo(email);
-        mail.setSubject("Seller Registration Received");
-
-        mail.setText(
-                """
-                        Dear Seller,
-
-                        Your seller account has been successfully created.
-
-                        Our team will review your details and approve your account shortly.
-
-                        You will be notified once the approval process is complete.
-
-                        Regards,
-                        Ecommerce Team
-                        """);
+        mail.setSubject(messageService.get(MessageKeys.EMAIL_SELLER_REGISTRATION_SUBJECT));
+        mail.setText(messageService.get(MessageKeys.EMAIL_SELLER_REGISTRATION_BODY));
 
         mailSender.send(mail);
     }
@@ -76,16 +62,8 @@ public class EmailServiceImpl implements EmailService {
         SimpleMailMessage mail = new SimpleMailMessage();
         mail.setFrom(from);
         mail.setTo(email);
-        mail.setSubject("Account Locked");
-        mail.setText(
-                """
-                Your account has been locked due to multiple failed login attempts.
-
-                Please contact support to unlock your account.
-
-                Regards,
-                Ecommerce Team
-                """);
+        mail.setSubject(messageService.get(MessageKeys.EMAIL_ACCOUNT_LOCKED_SUBJECT));
+        mail.setText(messageService.get(MessageKeys.EMAIL_ACCOUNT_LOCKED_BODY));
         mailSender.send(mail);
     }
 
@@ -97,17 +75,8 @@ public class EmailServiceImpl implements EmailService {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setFrom(from);
         mailMessage.setTo(toEmail);
-        mailMessage.setSubject("Reset your password");
-        mailMessage.setText(
-                """
-                        We received a request to reset your password.
-
-                        Use the link below to reset it:
-
-                        %s
-
-                        This link will expire soon. If you did not request this, you can ignore this email.
-                        """.formatted(resetLink));
+        mailMessage.setSubject(messageService.get(MessageKeys.EMAIL_PASSWORD_RESET_SUBJECT));
+        mailMessage.setText(messageService.get(MessageKeys.EMAIL_PASSWORD_RESET_BODY, resetLink));
         mailSender.send(mailMessage);
     }
 
@@ -117,17 +86,37 @@ public class EmailServiceImpl implements EmailService {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setFrom(from);
         mailMessage.setTo(toEmail);
-        mailMessage.setSubject("Your password was changed");
-        mailMessage.setText(
-                """
-                        Your password was recently changed.
-
-                        If you did not perform this action, please contact support immediately.
-
-                        Regards,
-                        Ecommerce Team
-                        """);
+        mailMessage.setSubject(messageService.get(MessageKeys.EMAIL_PASSWORD_CHANGED_SUBJECT));
+        mailMessage.setText(messageService.get(MessageKeys.EMAIL_PASSWORD_CHANGED_BODY));
         mailSender.send(mailMessage);
+    }
+
+    @Override
+    @Async
+    public void sendAccountActivationEmail(String toEmail) {
+        try {   
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject(messageService.get(MessageKeys.EMAIL_ACCOUNT_ACTIVATED_SUBJECT));
+            message.setText(messageService.get(MessageKeys.EMAIL_ACCOUNT_ACTIVATED_BODY));
+            mailSender.send(message);
+        } catch (Exception e) {
+            System.err.println("Failed to send activation email: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Async
+    public void sendAccountDeactivationEmail(String toEmail) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject(messageService.get(MessageKeys.EMAIL_ACCOUNT_DEACTIVATED_SUBJECT));
+            message.setText(messageService.get(MessageKeys.EMAIL_ACCOUNT_DEACTIVATED_BODY));
+            mailSender.send(message);
+        } catch (Exception e) {
+            System.err.println("Failed to send deactivation email: " + e.getMessage());
+        }
     }
 
 }

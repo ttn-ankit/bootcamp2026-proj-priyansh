@@ -1,5 +1,7 @@
 package com.example.ecommerceproject.service.impl;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import java.time.LocalDateTime;
 import java.util.Collection;
 
@@ -10,9 +12,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import com.example.ecommerceproject.entity.User;
 
+import lombok.experimental.FieldDefaults;
+
+@FieldDefaults(level = PRIVATE)
 public class CustomUserDetails implements UserDetails {
 
-    private final User user;
+    final User user;
 
     public CustomUserDetails(User user) {
         this.user = user;

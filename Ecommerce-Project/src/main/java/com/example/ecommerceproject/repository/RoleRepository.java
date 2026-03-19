@@ -9,4 +9,5 @@ import com.example.ecommerceproject.enums.RoleEnums;
 @Repository
 public interface RoleRepository extends JpaRepository<Role, Long>{
     Optional<Role> findByAuthority(RoleEnums authority);
+    boolean existsByAuthority(RoleEnums authority);
 }

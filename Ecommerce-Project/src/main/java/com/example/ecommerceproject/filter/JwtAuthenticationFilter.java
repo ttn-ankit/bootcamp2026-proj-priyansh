@@ -1,5 +1,7 @@
 package com.example.ecommerceproject.filter;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import java.io.IOException;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -9,7 +11,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.example.ecommerceproject.config.TokenBlacklist;
+import com.example.ecommerceproject.service.UserSessionService;
 import com.example.ecommerceproject.service.impl.CustomUserDetailsServiceImpl;
 import com.example.ecommerceproject.util.JwtUtil;
 
@@ -18,14 +20,16 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Component
 @RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE)
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtUtil jwtUtil;
-    private final CustomUserDetailsServiceImpl userDetailsService;
-    private final TokenBlacklist tokenBlacklist;
+    final JwtUtil jwtUtil;
+    final CustomUserDetailsServiceImpl userDetailsService;
+    final UserSessionService userSessionService;
 
     @Override
     protected void doFilterInternal(
@@ -40,39 +44,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String email = null;
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-
             token = authHeader.substring(7);
+            
             try {
                 String jti = jwtUtil.extractJti(token);
-                if (tokenBlacklist.contains(jti)) {
+                if (!userSessionService.isAccessTokenValid(jti)) {
                     filterChain.doFilter(request, response);
                     return;
                 }
+                
                 email = jwtUtil.extractEmail(token);
+                
             } catch (Exception e) {
                 filterChain.doFilter(request, response);
                 return;
             }
         }
 
-        if (email != null &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            try {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                if (jwtUtil.validateToken(token, userDetails)) {
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
 
-            if (jwtUtil.validateToken(token, userDetails)) {
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request));
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request));
-
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authentication);
+                    SecurityContextHolder.getContext()
+                            .setAuthentication(authentication);
+                }
+            } catch (Exception e) {
+                
             }
         }
 
