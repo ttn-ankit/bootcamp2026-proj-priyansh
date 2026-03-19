@@ -1,6 +1,7 @@
 package com.example.ecommerceproject.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ import com.example.ecommerceproject.dto.CategoryMetadataValueRequestDTO;
 import com.example.ecommerceproject.dto.CategoryResponseDTO;
 import com.example.ecommerceproject.dto.CustomerResponseDTO;
 import com.example.ecommerceproject.dto.MetadataFieldResponseDTO;
+import com.example.ecommerceproject.dto.ProductResponseDTO;
 import com.example.ecommerceproject.dto.SellerResponseDTO;
 import com.example.ecommerceproject.service.AdminService;
 
@@ -204,5 +206,25 @@ public class AdminController {
             @Parameter(description = "ID of the category", required = true) @PathVariable Long categoryId,
             @RequestBody @Valid List<CategoryMetadataValueRequestDTO> fieldValues) {
         return ResponseEntity.ok(adminService.addCategoryMetadataFieldValues(categoryId, fieldValues));
+    }
+
+    @GetMapping("/products")
+    @Operation(summary = "List all products", description = "Retrieve a paginated list of all products with optional filters")
+    public ResponseEntity<Page<ProductResponseDTO>> getAllProducts(
+            @Parameter(description = "Map containing offset, max, sort, order, sellerId, or categoryId")
+            @RequestParam Map<String, String> params) {
+        return ResponseEntity.ok(adminService.getAllProducts(params));
+    }
+
+    @PutMapping("/products/{id}/status")
+    @Operation(summary = "Toggle product status", description = "Activate or Deactivate a product by ID")
+    public ResponseEntity<ApiResponse> toggleStatus(
+            @Parameter(description = "The unique ID of the product", required = true)
+            @PathVariable("id") 
+            @Positive(message = "{validation.invalid_id_format}")
+            Long id,
+            @Parameter(description = "Set to true to activate, false to deactivate", required = true)
+            @RequestParam("activate") boolean activate) {
+        return ResponseEntity.ok(adminService.toggleProductStatus(id, activate));
     }
 }

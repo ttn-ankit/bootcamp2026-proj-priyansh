@@ -166,5 +166,15 @@ public final class MessageKeys {
     public static final String METADATA_FIELD_VALUE_DUPLICATE = "category.metadata_field_value_duplicate";
     public static final String METADATA_FIELDS_ADDED_TO_CATEGORY_SUCCESSFULLY = "category.metadata_fields_added_successfully";
     public static final String PARENT_CANNOT_ASSOCIATE_WITH_EXISTING_PRODUCT = "category.parent_cannot_associate_with_existing_product";
+    public static final String INVALID_PRODUCT_ID = "product.invalid_product_id";
+    public static final String PRODUCT_NOT_FOUND = "product.not_found";
+    public static final String PRODUCT_ALREADY_ACTIVE = "product.already_active";
+    public static final String PRODUCT_ACTIVATED_SUCCESSFULLY = "product.activated_successfully";
+    public static final String PRODUCT_ALREADY_DEACTIVATED = "product.already_deactivated";
+    public static final String PRODUCT_DEACTIVATED_SUCCESSFULLY = "product.deactivated_successfully";
+    public static final String EMAIL_PRODUCT_ACTIVATED_SUBJECT = "email.";
+    public static final String EMAIL_PRODUCT_ACTIVATED_BODY = "email.";
+    public static final String EMAIL_PRODUCT_DEACTIVATED_BODY = "email.";
+    public static final String EMAIL_PRODUCT_DEACTIVATED_SUBJECT = "email.";
 
 }

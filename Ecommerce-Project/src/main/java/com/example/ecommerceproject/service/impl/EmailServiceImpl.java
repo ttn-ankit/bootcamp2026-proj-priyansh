@@ -94,29 +94,36 @@ public class EmailServiceImpl implements EmailService {
     @Override
     @Async
     public void sendAccountActivationEmail(String toEmail) {
-        try {   
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(toEmail);
             message.setSubject(messageService.get(MessageKeys.EMAIL_ACCOUNT_ACTIVATED_SUBJECT));
             message.setText(messageService.get(MessageKeys.EMAIL_ACCOUNT_ACTIVATED_BODY));
             mailSender.send(message);
-        } catch (Exception e) {
-            System.err.println("Failed to send activation email: " + e.getMessage());
-        }
     }
 
     @Override
     @Async
     public void sendAccountDeactivationEmail(String toEmail) {
-        try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(toEmail);
             message.setSubject(messageService.get(MessageKeys.EMAIL_ACCOUNT_DEACTIVATED_SUBJECT));
             message.setText(messageService.get(MessageKeys.EMAIL_ACCOUNT_DEACTIVATED_BODY));
             mailSender.send(message);
-        } catch (Exception e) {
-            System.err.println("Failed to send deactivation email: " + e.getMessage());
-        }
     }
 
+    @Override
+    public void sendProductStatusEmail(String sellerEmail, String productName, boolean isActivated) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(sellerEmail);
+        
+        if (isActivated) {
+            message.setSubject(messageService.get(MessageKeys.EMAIL_PRODUCT_ACTIVATED_SUBJECT));
+            message.setText(messageService.get(MessageKeys.EMAIL_PRODUCT_ACTIVATED_BODY, new Object[]{productName}));
+        } else {
+            message.setSubject(messageService.get(MessageKeys.EMAIL_PRODUCT_DEACTIVATED_SUBJECT));
+            message.setText(messageService.get(MessageKeys.EMAIL_PRODUCT_DEACTIVATED_BODY, new Object[]{productName}));
+        }
+        
+        mailSender.send(message);
+    }
 }

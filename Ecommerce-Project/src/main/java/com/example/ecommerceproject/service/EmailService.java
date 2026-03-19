@@ -8,4 +8,5 @@ public interface EmailService {
     void sendPasswordChangedEmail(String toEmail);
     void sendAccountActivationEmail(String email);
     void sendAccountDeactivationEmail(String email);
+    void sendProductStatusEmail(String sellerEmail, String productName, boolean isActivated);
 }
