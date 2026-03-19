@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -11,27 +12,33 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.ecommerceproject.dto.AddressDTO;
 import com.example.ecommerceproject.dto.AddressPartialUpdateRequestDTO;
 import com.example.ecommerceproject.dto.AddressResponseDTO;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
+import com.example.ecommerceproject.dto.CategoryFilterDetailsDTO;
+import com.example.ecommerceproject.dto.CategoryResponseDTO;
 import com.example.ecommerceproject.dto.CustomerProfileResponseDTO;
 import com.example.ecommerceproject.dto.CustomerProfileUpdateRequestDTO;
 import com.example.ecommerceproject.dto.PasswordUpdateRequestDTO;
 import com.example.ecommerceproject.service.CustomerService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/customer")
 @PreAuthorize("hasRole('CUSTOMER')")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Customer Profile Management", description = "APIs for Customers to manage their profile and multiple addresses")
 @SecurityRequirement(name = "bearerAuth")
 public class CustomerController {
@@ -41,7 +48,9 @@ public class CustomerController {
     @Operation(summary = "View Customer Profile")
     @GetMapping("/{userId}/profile")
     public ResponseEntity<CustomerProfileResponseDTO> getProfile(
-        @PathVariable Long userId
+        @PathVariable 
+        @Positive(message = "{validation.invalid_id_format}")
+        Long userId
     ){
         return ResponseEntity.ok(customerService.getProfile(userId));
     }
@@ -49,7 +58,9 @@ public class CustomerController {
     @Operation(summary = "Update Profile", description = "Partial update of customer profile fields")
     @PatchMapping("/{userId}/profile")
     public ResponseEntity<ApiResponseDTO> updateProfile(
-            @PathVariable Long userId,
+            @PathVariable 
+            @Positive(message = "{validation.invalid_id_format}")
+            Long userId,
             @Valid @RequestBody CustomerProfileUpdateRequestDTO dto) {
         return ResponseEntity.ok(customerService.updateProfile(userId, dto));
     }
@@ -57,7 +68,9 @@ public class CustomerController {
     @Operation(summary = "Update Password")
     @PatchMapping("/{userId}/password")
     public ResponseEntity<ApiResponseDTO> updatePassword(
-            @PathVariable Long userId,
+            @PathVariable 
+            @Positive(message = "{validation.invalid_id_format}")
+            Long userId,
             @Valid @RequestBody PasswordUpdateRequestDTO dto) {
         return ResponseEntity.ok(customerService.updatePassword(userId, dto));
     }
@@ -65,14 +78,18 @@ public class CustomerController {
     @Operation(summary = "View All Addresses")
     @GetMapping("/{userId}/addresses")
     public ResponseEntity<List<AddressResponseDTO>> getAddresses(
-            @PathVariable Long userId) {
+            @PathVariable 
+            @Positive(message = "{validation.invalid_id_format}")
+            Long userId) {
         return ResponseEntity.ok(customerService.getAddresses(userId));
     }
 
     @Operation(summary = "Add New Address")
     @PostMapping("/{userId}/addresses")
     public ResponseEntity<ApiResponseDTO> addAddress(
-            @PathVariable Long userId,
+            @PathVariable 
+            @Positive(message = "{validation.invalid_id_format}")
+            Long userId,
             @Valid @RequestBody AddressDTO dto) {
         return ResponseEntity.ok(customerService.addAddress(userId, dto));
     }
@@ -80,8 +97,12 @@ public class CustomerController {
     @Operation(summary = "Update Address", description = "Partial update of a specific address")
     @PatchMapping("/{userId}/addresses/{addressId}")
     public ResponseEntity<ApiResponseDTO> updateAddress(
-            @PathVariable Long userId,
-            @PathVariable Long addressId,
+            @PathVariable 
+            @Positive(message = "{validation.invalid_id_format}")
+            Long userId,
+            @PathVariable 
+            @Positive(message = "{validation.invalid_id_format}")
+            Long addressId,
             @Valid @RequestBody AddressPartialUpdateRequestDTO dto) {
         return ResponseEntity.ok(customerService.updateAddress(userId, addressId, dto));
     }
@@ -89,8 +110,32 @@ public class CustomerController {
     @Operation(summary = "Delete Address", description = "Soft deletes a specific address")
     @DeleteMapping("/{userId}/addresses/{addressId}")
     public ResponseEntity<ApiResponseDTO> deleteAddress(
-            @PathVariable Long userId,
-            @PathVariable Long addressId) {
+            @PathVariable 
+            @Positive(message = "{validation.invalid_id_format}")
+            Long userId,
+            @PathVariable 
+            @Positive(message = "{validation.invalid_id_format}")
+            Long addressId) {
         return ResponseEntity.ok(customerService.deleteAddress(userId, addressId));
+    }
+
+    @Operation(summary = "List categories", description = "Returns root categories if no ID is passed, else returns immediate child nodes.")
+    @GetMapping("/category")
+    public ResponseEntity<List<CategoryResponseDTO>> listCategories(
+            @Parameter(description = "Optional parent Category ID") 
+            @RequestParam(required = false) 
+            @Positive(message = "{validation.invalid_id_format}")
+            Long categoryId) {
+        return ResponseEntity.ok(customerService.getCategories(categoryId));
+    }
+
+    @Operation(summary = "Fetch filtering details for a category", description = "Returns metadata, aggregated brands, and price ranges for a category and all its subcategories.")
+    @GetMapping("/category/{categoryId}/filters")
+    public ResponseEntity<CategoryFilterDetailsDTO> getFilteringDetails(
+            @Parameter(description = "Valid Category ID", required = true) 
+            @PathVariable 
+            @Positive(message = "{validation.invalid_id_format}")
+            Long categoryId) {
+        return ResponseEntity.ok(customerService.getCategoryFilteringDetails(categoryId));
     }
 }

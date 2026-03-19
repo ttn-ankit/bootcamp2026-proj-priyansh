@@ -7,5 +7,5 @@ import com.example.ecommerceproject.entity.CategoryMetadataFieldValues;
 
 @Repository
 public interface CategoryMetadataFieldValuesRepository extends JpaRepository<CategoryMetadataFieldValues, Long>{
-
+    boolean existsByCategoryIdAndMetadataFieldIdAndValue(Long categoryId, Long metadataFieldId, String value);
 }

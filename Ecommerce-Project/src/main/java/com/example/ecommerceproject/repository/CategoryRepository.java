@@ -11,8 +11,7 @@ import com.example.ecommerceproject.entity.Category;
 
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSpecificationExecutor<Category>{
-    boolean existsByNameAndParentCategoryIsNull(String name);
-    boolean existsByNameAndParentCategory(String name, Long parentId);
+    boolean existsByNameIgnoreCase(String name);
     @Query("select c from Category c where SIZE(c.subCategories) = 0")
     List<Category> findAllLeafNodes();
     List<Category> findByParentCategoryIsNull();

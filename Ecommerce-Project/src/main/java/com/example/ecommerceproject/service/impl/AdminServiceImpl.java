@@ -34,6 +34,7 @@ import com.example.ecommerceproject.repository.CategoryMetadataFieldRepository;
 import com.example.ecommerceproject.repository.CategoryMetadataFieldValuesRepository;
 import com.example.ecommerceproject.repository.CategoryRepository;
 import com.example.ecommerceproject.repository.CustomerRepository;
+import com.example.ecommerceproject.repository.ProductRepository;
 import com.example.ecommerceproject.repository.SellerRepository;
 import com.example.ecommerceproject.repository.UserRepository;
 import com.example.ecommerceproject.service.AdminService;
@@ -54,14 +55,15 @@ public class AdminServiceImpl implements AdminService {
     final CustomerRepository customerRepository;
     final SellerRepository sellerRepository;
     final UserRepository userRepository;
-    final AddressRepository addressRepository;
-    final EmailService emailService;
-    final MessageService messageService;
-    final ModelMapper modelMapper;
     final UserSessionService userSessionService;
     final CategoryRepository categoryRepository;
     final CategoryMetadataFieldRepository metadataFieldRepository;
     final CategoryMetadataFieldValuesRepository metadataFieldValuesRepository;
+    final AddressRepository addressRepository;
+    final ProductRepository productRepository;
+    final EmailService emailService;
+    final MessageService messageService;
+    final ModelMapper modelMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -146,24 +148,30 @@ public class AdminServiceImpl implements AdminService {
         return new ApiResponseDTO(messageService.get(MessageKeys.ADMIN_USER_DEACTIVATED), 200);
     }
 
-
-
     @Override
     @Transactional
     public ApiResponse addMetadataField(String fieldName){
-        if(metadataFieldRepository.existsByNameIgnoreCase(fieldName)){
+        if(fieldName == null || fieldName.trim().isEmpty()){
+            throw new ApiException(MessageKeys.METADATA_FIELD_NAME_REQUIRED, 400);
+        }
+        String trimmedFieldName = fieldName.trim();
+    
+        if(trimmedFieldName.length() > 40){
+            throw new ApiException(MessageKeys.METADATA_FIELD_NAME_INVALID, 400);
+        }
+        if(metadataFieldRepository.existsByNameIgnoreCase(trimmedFieldName)){
             throw new ApiException(MessageKeys.METADATA_FIELD_VALUE_MUST_BE_UNIQUE, 400);
         }
 
         CategoryMetadataField field = new CategoryMetadataField();
-        field.setName(fieldName);
+        field.setName(trimmedFieldName);
         Long id = metadataFieldRepository.save(field).getId();
-        return new ApiResponse(MessageKeys.METADATA_FIELD_CREATED_SUCCESSFULLY, id);
+        return new ApiResponse(messageService.get(MessageKeys.METADATA_FIELD_CREATED_SUCCESSFULLY), id);
     }
 
     @Override
-    public Page<MetadataFieldResponseDTO> getAllMetadataFields(String query, int mac, int offset, String sort, String order){
-        Pageable page = createPageable(mac, offset, sort, order);
+    public Page<MetadataFieldResponseDTO> getAllMetadataFields(String query, int max, int offset, String sort, String order){
+        Pageable page = createPageable(max, offset, sort, order);
         Specification<CategoryMetadataField> spec = Specification.where(CategorySpecification.metadataFieldNameContains(query));
 
         return metadataFieldRepository.findAll(spec, page)
@@ -175,28 +183,43 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public ApiResponse addCategory(String categoryName, Long parentId){
+        if(categoryName == null || categoryName.trim().isEmpty()){
+            throw new ApiException(MessageKeys.CATEGORY_NAME_REQUIRED, 400);
+        }
+        String trimmedCategoryName = categoryName.trim();
+        
+        if(trimmedCategoryName.length() > 40){
+            throw new ApiException(MessageKeys.CATEGORY_NAME_INVALID, 400);
+        }
+        if (categoryRepository.existsByNameIgnoreCase(categoryName)) {
+            throw new ApiException(messageService.get(MessageKeys.CATEGORY_NAME_MUST_BE_UNIQUE_WITHIN_PARENT), 400);
+        }
+        
         Category parent = null;
         if(parentId != null){
             parent = categoryRepository.findById(parentId).orElseThrow(
                 () -> new ApiException(MessageKeys.INVALID_PARENT_CATEGORY_ID, 400)
             );
-            if(categoryRepository.existsByNameAndParentCategory(categoryName, parentId)){
-                throw new ApiException(MessageKeys.CATEGORY_NAME_MUST_BE_UNIQUE_WITHIN_PARENT, 400);
+            if (productRepository.existsByCategoryIdAndIsDeletedFalse(parentId)) {
+                throw new ApiException(messageService.get(MessageKeys.PARENT_CANNOT_ASSOCIATE_WITH_EXISTING_PRODUCT), 400);
             }
-        } else if(categoryRepository.existsByNameAndParentCategoryIsNull(categoryName)){
-            throw new ApiException(MessageKeys.CATEGORY_NAME_MUST_BE_UNIQUE, 400);
+
+            if(trimmedCategoryName.equalsIgnoreCase(parent.getName())){
+                throw new ApiException(MessageKeys.CATEGORY_NAME_CANNOT_MATCH_PARENT, 400);
+            }
         }
         Category category = new Category();
-        category.setName(categoryName);
+        category.setName(trimmedCategoryName);
         category.setParentCategory(parent);
         Long id = categoryRepository.save(category).getId();
-        return new ApiResponse(MessageKeys.CATEGORY_CREATED_SUCCESSFULLY, id);
+        return new ApiResponse(messageService.get(MessageKeys.CATEGORY_CREATED_SUCCESSFULLY), id);
     }
 
     @Override
     public Page<CategoryResponseDTO> getAllCategories(String query, Long categoryId, int max, int offset, String sort, String order){
         Pageable pageable = createPageable(max, offset, sort, order);
-        Specification<Category> spec = Specification.where(CategorySpecification.categoryNameContains(query));
+        Specification<Category> spec = Specification.where(CategorySpecification.categoryNameContains(query))
+                .and(CategorySpecification.categoryHasParentId(categoryId));
 
         return categoryRepository.findAll(spec, pageable)
         .map(field -> {
@@ -211,20 +234,32 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public ApiResponse updateCategory(Long categoryId, String categoryName){
+        if(categoryName == null || categoryName.trim().isEmpty()){
+            throw new ApiException(messageService.get(MessageKeys.CATEGORY_NAME_REQUIRED), 400);
+        }
+        
+        String trimmedCategoryName = categoryName.trim();
+        
+        if(trimmedCategoryName.length() > 40){
+            throw new ApiException(messageService.get(MessageKeys.CATEGORY_NAME_INVALID), 400);
+        }
+        
         Category category = categoryRepository.findById(categoryId).orElseThrow(
-            () -> new ApiException(MessageKeys.INVALID_CATEGORY_ID, 400)
+            () -> new ApiException(messageService.get(MessageKeys.INVALID_CATEGORY_ID), 400)
         );
 
-        Long parentId = category.getParentCategory().getId() != null ? category.getParentCategory().getId() : null;
-
-        if(parentId != null && categoryRepository.existsByNameAndParentCategory(categoryName, parentId)){
-            throw new ApiException(MessageKeys.CATEGORY_NAME_MUST_BE_UNIQUE_WITHIN_PARENT, 400);
-        } else if(parentId == null && categoryRepository.existsByNameAndParentCategoryIsNull(categoryName)){
-            throw new ApiException(MessageKeys.CATEGORY_NAME_MUST_BE_UNIQUE, 400);
+        Long parentId = category.getParentCategory() != null ? category.getParentCategory().getId() : null;
+        if(!trimmedCategoryName.equals(category.getName())){
+            if(parentId != null){
+                Category parent = category.getParentCategory();
+                if(trimmedCategoryName.equalsIgnoreCase(parent.getName()) && categoryRepository.existsByNameIgnoreCase(categoryName)){
+                    throw new ApiException(messageService.get(MessageKeys.CATEGORY_NAME_CANNOT_MATCH_PARENT), 400);
+                }
+            }
         }
 
-        category.setName(categoryName);
-        return new ApiResponse(MessageKeys.CATEGORY_UPDATED_SUCCESSFULLY);       
+        category.setName(trimmedCategoryName);
+        return new ApiResponse(messageService.get(MessageKeys.CATEGORY_UPDATED_SUCCESSFULLY));       
     }
 
     @Override
@@ -235,16 +270,35 @@ public class AdminServiceImpl implements AdminService {
         );
 
         for(CategoryMetadataValueRequestDTO dto : fieldValues){
+            if(dto.getMetaDataFieldId() == null){
+                throw new ApiException(MessageKeys.INVALID_METADATA_FIELD_ID, 400);
+            }
+            
+            if(dto.getValue() == null || dto.getValue().trim().isEmpty()){
+                throw new ApiException(MessageKeys.METADATA_FIELD_VALUE_REQUIRED, 400);
+            }
+        
             CategoryMetadataField metadataField = metadataFieldRepository.findById(dto.getMetaDataFieldId())
             .orElseThrow(() -> new ApiException(MessageKeys.INVALID_METADATA_FIELD_ID, 400));
-
+            
+            String trimmedValue = dto.getValue().trim();
+            
+            if(metadataFieldValuesRepository.existsByCategoryIdAndMetadataFieldIdAndValue(
+                    categoryId, dto.getMetaDataFieldId(), trimmedValue)){
+                throw new ApiException(MessageKeys.METADATA_FIELD_VALUE_DUPLICATE, 400);
+            }
             CategoryMetadataFieldValues values = new CategoryMetadataFieldValues();
             values.setCategory(category);
             values.setMetadataField(metadataField);
-            values.setValue(dto.getValue());
-            metadataFieldValuesRepository.save(values);
+            values.setValue(trimmedValue);
+            
+            try {
+                metadataFieldValuesRepository.save(values);
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                throw new ApiException(MessageKeys.METADATA_FIELD_VALUE_DUPLICATE, 400);
+            }
         }
-        return new ApiResponse(MessageKeys.METADATA_FIELDS_ADDED_TO_CATEGORY_SUCCESSFULLY);
+        return new ApiResponse(messageService.get(MessageKeys.METADATA_FIELDS_ADDED_TO_CATEGORY_SUCCESSFULLY));
     }
 
     private Pageable createPageable(int max, int offset, String sort, String order) {

@@ -67,6 +67,9 @@ public final class MessageKeys {
     public static final String VALIDATION_USER_ALREADY_DELETED = "validation.user_already_deleted";
     public static final String VALIDATION_USER_ALREADY_DEACTIVATED = "validation.user_already_deactivated";
     public static final String VALIDATION_USER_ALREADY_ACTIVATED = "validation.user_already_activated";
+    public static final String VALIDATION_MISSING_REQUIRED_PART = "validation.missing_required_part";
+    public static final String VALIDATION_INVALID_ID_FORMAT = "validation.invalid_id_format";
+    public static final String VALIDATION_INVALID_PARAMETER_TYPE = "validation.invalid_parameter_type";
     
     
     // Admin Controller Validation Messages
@@ -90,6 +93,16 @@ public final class MessageKeys {
     public static final String ERROR_USER_IS_DELETED = "error.user_is_deleted";
     public static final String ERROR_ADDRESS_PERMISSION_DENIED = "error.address_permission_denied";
     public static final String ERROR_ACCESS_DENIED = "error.access_denied";
+    public static final String ERROR_USER_NOT_FOUND = "error.user_not_found";
+    
+
+    // Image Upload Messages
+    public static final String IMAGE_UPLOAD_SUCCESS = "image.upload_success";
+    public static final String IMAGE_UPLOAD_FAILED = "image.upload_failed";
+    public static final String IMAGE_FILE_REQUIRED = "image.file_required";
+    public static final String IMAGE_FILE_TOO_LARGE = "image.file_too_large";
+    public static final String IMAGE_INVALID_FILENAME = "image.invalid_filename";
+    public static final String IMAGE_INVALID_FORMAT = "image.invalid_format";
     
 
     public static final String ADMIN_CUSTOMER_ACTIVATED = "admin.customer_activated";
@@ -128,19 +141,30 @@ public final class MessageKeys {
     public static final String EMAIL_ACCOUNT_DEACTIVATED_BODY = "email.account_deactivated.body";
     
     // JWT Token Messages
-    public static final String JWT_TOKEN_EXPIRED = "jwt.token_expired";
     public static final String JWT_TOKEN_INVALID = "jwt.token_invalid";
+    public static final String JWT_TOKEN_EXPIRED = "jwt.token_expired";
     public static final String JWT_TOKEN_MALFORMED = "jwt.token_malformed";
     public static final String JWT_TOKEN_REVOKED = "jwt.token_revoked";
     public static final String METADATA_FIELD_VALUE_MUST_BE_UNIQUE = "category.field_value_must_be_unique";
-    public static final String METADATA_FIELD_CREATED_SUCCESSFULLY = "category.field_created_successfully";
+    public static final String METADATA_FIELD_CREATED_SUCCESSFULLY = "metadata.field_created_successfully";
+    public static final String METADATA_FIELD_NAME_REQUIRED = "category.field_name_required";
+    public static final String METADATA_FIELD_NAME_INVALID = "category.field_name_invalid";
+    public static final String METADATA_FIELD_NAME_NO_NUMBERS = "category.field_name_no_numbers";
     public static final String INVALID_PARENT_CATEGORY_ID = "category.invalid_parent_category_id";
-    public static final String CATEGORY_NAME_MUST_BE_UNIQUE = null;
-    public static final String CATEGORY_NAME_MUST_BE_UNIQUE_WITHIN_PARENT = null;
-    public static final String CATEGORY_CREATED_SUCCESSFULLY = null;
-    public static final String INVALID_CATEGORY_ID = null;
-    public static final String CATEGORY_UPDATED_SUCCESSFULLY = null;
-    public static final String INVALID_METADATA_FIELD_ID = null;
-    public static final String METADATA_FIELDS_ADDED_TO_CATEGORY_SUCCESSFULLY = null;
+    public static final String CATEGORY_NAME_MUST_BE_UNIQUE = "category.name_must_be_unique";
+    public static final String CATEGORY_NAME_MUST_BE_UNIQUE_WITHIN_PARENT = "category.name_must_be_unique_within_parent";
+    public static final String CATEGORY_NAME_REQUIRED = "category.name_required";
+    public static final String CATEGORY_NAME_INVALID = "category.name_invalid";
+    public static final String CATEGORY_NAME_NO_NUMBERS = "category.name_no_numbers";
+    public static final String CATEGORY_NAME_CANNOT_MATCH_PARENT = "category.name_cannot_match_parent";
+    public static final String CATEGORY_CREATED_SUCCESSFULLY = "category.created_successfully";
+    public static final String INVALID_CATEGORY_ID = "category.invalid_category_id";
+    public static final String CATEGORY_UPDATED_SUCCESSFULLY = "category.updated_successfully";
+    public static final String INVALID_METADATA_FIELD_ID = "category.invalid_metadata_field_id";
+    public static final String METADATA_FIELD_VALUE_REQUIRED = "category.metadata_field_value_required";
+    public static final String METADATA_FIELD_VALUE_INVALID = "category.metadata_field_value_invalid";
+    public static final String METADATA_FIELD_VALUE_DUPLICATE = "category.metadata_field_value_duplicate";
+    public static final String METADATA_FIELDS_ADDED_TO_CATEGORY_SUCCESSFULLY = "category.metadata_fields_added_successfully";
+    public static final String PARENT_CANNOT_ASSOCIATE_WITH_EXISTING_PRODUCT = "category.parent_cannot_associate_with_existing_product";
 
 }

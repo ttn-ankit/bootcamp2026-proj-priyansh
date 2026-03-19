@@ -10,13 +10,11 @@ import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.example.ecommerceproject.dto.AddressDTO;
 import com.example.ecommerceproject.dto.AddressPartialUpdateRequestDTO;
@@ -181,7 +179,7 @@ public class CustomerServiceImpl implements CustomerService {
             categories = categoryRepository.findByParentCategoryIsNull();
         } else {
             if (!categoryRepository.existsById(categoryId)) {
-                throw new ApiException(MessageKeys.INVALID_CATEGORY_ID, 400);
+                throw new ApiException(messageService.get(MessageKeys.INVALID_CATEGORY_ID), 400);
             }
             categories = categoryRepository.findByParentCategoryId(categoryId);
         }
@@ -198,7 +196,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional(readOnly = true)
     public CategoryFilterDetailsDTO getCategoryFilteringDetails(Long categoryId){
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Category ID"));
+                .orElseThrow(() -> new ApiException(MessageKeys.INVALID_CATEGORY_ID, 400));
 
         CategoryFilterDetailsDTO filterDTO = new CategoryFilterDetailsDTO();
 
@@ -227,10 +225,13 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     private String computeImageUrl(Long userId, Customer customer) {
+        // File system lookup using user ID
         File userDir = Paths.get(basePath, "users").toFile();
         if (!userDir.exists() || !userDir.isDirectory()) {
             return null;
         }
+
+        // Try user ID first (primary), then customer ID for backward compatibility
         Long[] idsToTry = { userId, customer != null ? customer.getId() : null };
 
         for (Long id : idsToTry) {

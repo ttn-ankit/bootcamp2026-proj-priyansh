@@ -37,7 +37,7 @@ public class Product {
     Boolean isActive;
 
     @Column(name = "is_deleted")
-    Boolean deleted = false;
+    Boolean isDeleted = false;
 
     String brand;
 

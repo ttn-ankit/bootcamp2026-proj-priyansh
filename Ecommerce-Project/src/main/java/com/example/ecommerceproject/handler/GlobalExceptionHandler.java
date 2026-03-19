@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -18,6 +19,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import com.example.ecommerceproject.dto.ValidationErrorResponseDTO;
 import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.service.MessageService;
@@ -188,5 +191,71 @@ public class GlobalExceptionHandler {
         response.put("message", message);
         response.put("status", HttpStatus.UNAUTHORIZED.value());
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<?> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String message;
+        if (ex.getMessage() != null && ex.getMessage().contains("category_metadata_field_values")) {
+            message = messageService.get(MessageKeys.METADATA_FIELD_VALUE_DUPLICATE, null, locale);
+        } else {
+            message = messageService.get("validation.constraint_violation", null, "Data constraint violation", locale);
+        }
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("message", message);
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<?> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String message;
+        String parameterName = ex.getName();
+        if (parameterName != null && parameterName.toLowerCase().endsWith("id")) {
+            String idType = parameterName.substring(0, parameterName.length() - 2);
+            idType = idType.substring(0, 1).toUpperCase() + idType.substring(1);
+            message = messageService.get(MessageKeys.VALIDATION_INVALID_ID_FORMAT, 
+                new Object[]{idType}, 
+                idType + " ID must be a positive number", 
+                locale);
+        } else {
+            String expectedType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "valid type";
+            message = messageService.get(MessageKeys.VALIDATION_INVALID_PARAMETER_TYPE, 
+                new Object[]{parameterName, expectedType, ex.getValue()}, 
+                "Invalid " + parameterName + ". Expected " + expectedType + " but received: " + ex.getValue(), 
+                locale);
+        }
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("message", message);
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<?> handleMissingServletRequestPartException(MissingServletRequestPartException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String partName = ex.getRequestPartName();
+        String message;
+        
+        if ("image".equals(partName)) {
+            message = messageService.get(MessageKeys.IMAGE_FILE_REQUIRED, null, "Image file is required", locale);
+        } else {
+            message = messageService.get(MessageKeys.VALIDATION_MISSING_REQUIRED_PART, 
+                new Object[]{partName}, 
+                "Required part '" + partName + "' is missing", 
+                locale);
+        }
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("message", message);
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

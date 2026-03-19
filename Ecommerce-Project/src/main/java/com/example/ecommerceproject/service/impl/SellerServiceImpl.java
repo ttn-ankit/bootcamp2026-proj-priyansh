@@ -117,7 +117,7 @@ public class SellerServiceImpl implements SellerService {
         Seller seller = getActiveSellerByUserId(userId);
         Address address = addressRepository.findByUserAndUserIsDeletedFalse(seller.getUser()).stream().findFirst()
                 .orElseThrow(
-                        () -> new ApiException("Address not found", 400));
+                        () -> new ApiException(messageService.get(MessageKeys.ERROR_ADDRESS_NOT_FOUND), 400));
 
         if (dto.getLabel() != null) {
             validateSellerAddressLabel(dto.getLabel());
@@ -149,7 +149,6 @@ public class SellerServiceImpl implements SellerService {
             metaDto.setPossibleValues(fv.getValue());
             return metaDto;
         }).collect(Collectors.toList());
-        
         dto.setMetadataFields(metadataDTOs);
 
         return dto;
