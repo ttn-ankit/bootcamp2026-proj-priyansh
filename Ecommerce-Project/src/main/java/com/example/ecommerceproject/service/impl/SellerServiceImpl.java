@@ -62,6 +62,7 @@ public class SellerServiceImpl implements SellerService {
     @Transactional(readOnly = true)
     public SellerProfileResponseDTO getProfile(Long userId) {
         validateUserAccess(userId);
+        validateSellerRole();
         Seller seller = getActiveSellerByUserId(userId);
         User user = seller.getUser();
         List<Address> addresses = addressRepository.findByUserAndUserIsDeletedFalse(user);
@@ -167,14 +168,21 @@ public class SellerServiceImpl implements SellerService {
     }
 
     private Seller getActiveSellerByUserId(Long userId) {
-        Seller seller = sellerRepository.findByUser_Id(userId)
-                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.ERROR_SELLER_NOT_FOUND), 400));
+        try {
+            Seller seller = sellerRepository.findByUser_Id(userId)
+                    .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.ERROR_SELLER_NOT_FOUND), 404));
 
-        if (!seller.getUser().isActive()) {
-            throw new ApiException(messageService.get(MessageKeys.AUTH_ACCOUNT_NOT_ACTIVATED), 400);
+            if (!seller.getUser().isActive()) {
+                throw new ApiException(messageService.get(MessageKeys.AUTH_ACCOUNT_NOT_ACTIVATED), 400);
+            }
+
+            return seller;
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            throw new ApiException(messageService.get(MessageKeys.ERROR_SELLER_NOT_FOUND), 404);
         }
-
-        return seller;
     }
 
     private String computeImageUrl(Long userId, Seller seller) {
@@ -221,11 +229,33 @@ public class SellerServiceImpl implements SellerService {
     }
 
     private Long getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
-            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            return userDetails.getUserId();
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
+                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                return userDetails.getUserId();
+            }
+            throw new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_AUTHENTICATED), 401);
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            throw new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_AUTHENTICATED), 401);
         }
-        throw new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_AUTHENTICATED), 401);
+    }
+
+    private void validateSellerRole() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.getAuthorities().stream()
+                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_SELLER"))) {
+                throw new ApiException(messageService.get(MessageKeys.ERROR_ACCESS_DENIED), 403);
+            }
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            throw new ApiException(messageService.get(MessageKeys.ERROR_ACCESS_DENIED), 403);
+        }
     }
 }

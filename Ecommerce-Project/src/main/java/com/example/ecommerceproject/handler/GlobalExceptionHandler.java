@@ -20,7 +20,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.example.ecommerceproject.dto.ValidationErrorResponseDTO;
 import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.service.MessageService;
@@ -251,6 +253,39 @@ public class GlobalExceptionHandler {
                 "Required part '" + partName + "' is missing", 
                 locale);
         }
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("message", message);
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<?> handleNoResourceFoundException(NoResourceFoundException ex) {
+        String resourcePath = ex.getResourcePath();
+        
+        if (resourcePath != null && resourcePath.startsWith("images/")) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("timestamp", LocalDateTime.now());
+            response.put("message", "Image not found");
+            response.put("status", HttpStatus.NOT_FOUND.value());
+            response.put("path", "/" + resourcePath);
+            return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        }
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("message", "Resource not found");
+        response.put("status", HttpStatus.NOT_FOUND.value());
+        response.put("path", "/" + resourcePath);
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<?> handleMultipartException(MultipartException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String message = messageService.get("validation.multipart_required", null, "Request must be multipart/form-data", locale);
         
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());

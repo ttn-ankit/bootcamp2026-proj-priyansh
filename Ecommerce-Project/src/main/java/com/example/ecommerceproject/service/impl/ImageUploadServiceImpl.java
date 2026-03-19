@@ -10,6 +10,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,11 +42,13 @@ public class ImageUploadServiceImpl implements ImageUploadService {
     @Override
     @Transactional(readOnly = true)
     public ApiResponseDTO uploadUserImage(Long userId, MultipartFile file) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(MessageKeys.ERROR_USER_NOT_FOUND, 404));
-        validateFile(file);
-
         try {
+            validateUserAccess(userId);
+            
+            userRepository.findById(userId)
+                    .orElseThrow(() -> new ApiException(MessageKeys.ERROR_USER_NOT_FOUND, 404));
+            validateFile(file);
+
             Path uploadPath = Paths.get(UPLOAD_DIR);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
@@ -59,13 +63,17 @@ public class ImageUploadServiceImpl implements ImageUploadService {
             deleteExistingImage(userId);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            log.info("Image uploaded successfully for user ID: {}, file: {}", userId, fileName);
-
             return new ApiResponseDTO(messageService.get(MessageKeys.IMAGE_UPLOAD_SUCCESS), 200);
 
         } catch (IOException e) {
             log.error("Failed to upload image for user ID: {}", userId, e);
             throw new ApiException(MessageKeys.IMAGE_UPLOAD_FAILED, 500);
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            log.error("Unexpected error during image upload for user ID: {}", userId, e);
+            throw new ApiException(messageService.get(MessageKeys.IMAGE_UPLOAD_FAILED), 500);
         }
     }
 
@@ -106,6 +114,36 @@ public class ImageUploadServiceImpl implements ImageUploadService {
             }
         } catch (IOException e) {
             log.warn("Failed to delete existing image for user ID: {}", userId, e);
+        }
+    }
+
+    private void validateUserAccess(Long requestedUserId) {
+        try {
+            Long authenticatedUserId = getCurrentUserId();
+            if (!requestedUserId.equals(authenticatedUserId)) {
+                throw new ApiException(MessageKeys.ERROR_ACCESS_DENIED, 403);
+            }
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            throw new ApiException(MessageKeys.ERROR_ACCESS_DENIED, 403);
+        }
+    }
+
+    private Long getCurrentUserId() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
+                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                return userDetails.getUserId();
+            }
+            throw new ApiException(MessageKeys.AUTH_USER_NOT_AUTHENTICATED, 401);
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            throw new ApiException(MessageKeys.AUTH_USER_NOT_AUTHENTICATED, 401);
         }
     }
 }

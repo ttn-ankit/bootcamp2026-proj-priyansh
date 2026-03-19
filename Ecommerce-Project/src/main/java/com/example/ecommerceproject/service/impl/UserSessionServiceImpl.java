@@ -40,10 +40,8 @@ public class UserSessionServiceImpl implements UserSessionService {
             refreshTokenRepository.deleteAll(tokens);
         }
 
-        // Also delete access tokens for the user
         accessTokenRepository.deleteByUser(user);
         
-        // Delete activation tokens for the user
         activationTokenRepository.deleteByUser(user);
 
         return tokens.size();
@@ -55,7 +53,6 @@ public class UserSessionServiceImpl implements UserSessionService {
         refreshTokenRepository.findByTokenId(refreshId)
                 .ifPresent(token -> {
                     refreshTokenRepository.delete(token);
-                    // Also delete associated access tokens for this user
                     accessTokenRepository.deleteByUser(token.getUser());
                 });
     }
@@ -63,8 +60,6 @@ public class UserSessionServiceImpl implements UserSessionService {
     @Override
     @Transactional
     public void storeAccessToken(String jti, User user) {
-        // Note: Access tokens are already deleted by revokeAllRefreshTokens in login flow
-        // This method just stores the new access token
         AccessToken accessToken = new AccessToken(jti, user);
         accessTokenRepository.save(accessToken);
     }
@@ -79,8 +74,6 @@ public class UserSessionServiceImpl implements UserSessionService {
     @Override
     @Transactional(readOnly = true)
     public boolean isAccessTokenValid(String jti) {
-        // Only check if token exists in DB (not revoked)
-        // JWT validation handles expiry
         return accessTokenRepository.existsByJti(jti);
     }
 }

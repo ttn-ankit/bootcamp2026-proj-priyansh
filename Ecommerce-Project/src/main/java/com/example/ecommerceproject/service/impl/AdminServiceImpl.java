@@ -44,6 +44,7 @@ import com.example.ecommerceproject.service.AdminService;
 import com.example.ecommerceproject.service.EmailService;
 import com.example.ecommerceproject.service.UserSessionService;
 import com.example.ecommerceproject.specs.CategorySpecification;
+import com.example.ecommerceproject.specs.ProductSpecifications;
 import com.example.ecommerceproject.util.MessageKeys;
 import com.example.ecommerceproject.service.MessageService;
 
@@ -313,8 +314,9 @@ public class AdminServiceImpl implements AdminService {
         String sortBy = params.getOrDefault("sort", "id");
         Sort.Direction direction = Sort.Direction.fromString(params.getOrDefault("order", "ASC"));
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Specification<Product> spec = ProductSpecifications.buildFilter(params);
 
-        return productRepository.findAll(pageable)
+        return productRepository.findAll(spec, pageable)
                 .map(product -> modelMapper.map(product, ProductResponseDTO.class));
     }
 

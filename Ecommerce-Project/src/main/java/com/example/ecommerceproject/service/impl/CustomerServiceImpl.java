@@ -66,6 +66,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional(readOnly = true)
     public CustomerProfileResponseDTO getProfile(Long userId) {
         validateUserAccess(userId);
+        validateCustomerRole();
         Customer customer = getActiveCustomerByUserId(userId);
         User user = customer.getUser();
 
@@ -161,13 +162,20 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     private Customer getActiveCustomerByUserId(Long userId) {
-        Customer customer = customerRepository.findByUserId(userId)
-                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.ERROR_CUSTOMER_NOT_FOUND), 404));
+        try {
+            Customer customer = customerRepository.findByUserId(userId)
+                    .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.ERROR_CUSTOMER_NOT_FOUND), 404));
 
-        if (!customer.getUser().isActive()) {
-            throw new ApiException(messageService.get(MessageKeys.AUTH_ACCOUNT_NOT_ACTIVATED), 400);
+            if (!customer.getUser().isActive()) {
+                throw new ApiException(messageService.get(MessageKeys.AUTH_ACCOUNT_NOT_ACTIVATED), 400);
+            }
+            return customer;
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            throw new ApiException(messageService.get(MessageKeys.ERROR_CUSTOMER_NOT_FOUND), 404);
         }
-        return customer;
     }
 
     @Override
@@ -225,13 +233,11 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     private String computeImageUrl(Long userId, Customer customer) {
-        // File system lookup using user ID
         File userDir = Paths.get(basePath, "users").toFile();
         if (!userDir.exists() || !userDir.isDirectory()) {
             return null;
         }
 
-        // Try user ID first (primary), then customer ID for backward compatibility
         Long[] idsToTry = { userId, customer != null ? customer.getId() : null };
 
         for (Long id : idsToTry) {
@@ -288,11 +294,33 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     private Long getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
-            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            return userDetails.getUserId();
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
+                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                return userDetails.getUserId();
+            }
+            throw new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_AUTHENTICATED), 401);
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            throw new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_AUTHENTICATED), 401);
         }
-        throw new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_AUTHENTICATED), 401);
+    }
+
+    private void validateCustomerRole() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.getAuthorities().stream()
+                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_CUSTOMER"))) {
+                throw new ApiException(messageService.get(MessageKeys.ERROR_ACCESS_DENIED), 403);
+            }
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            throw new ApiException(messageService.get(MessageKeys.ERROR_ACCESS_DENIED), 403);
+        }
     }
 }
