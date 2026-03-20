@@ -1,15 +1,26 @@
 package com.example.ecommerceproject.service.impl;
 
+import com.example.ecommerceproject.repository.ProductRepository;
+import com.example.ecommerceproject.repository.ProductVariationRepository;
+
 import static lombok.AccessLevel.PRIVATE;
 
 import java.io.File;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,18 +28,29 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.ecommerceproject.dto.AddressPartialUpdateRequestDTO;
+import com.example.ecommerceproject.dto.ApiResponse;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
 import com.example.ecommerceproject.dto.CategoryMetadataDTO;
 import com.example.ecommerceproject.dto.PasswordUpdateRequestDTO;
+import com.example.ecommerceproject.dto.ProductCreateRequest;
+import com.example.ecommerceproject.dto.ProductResponse;
+import com.example.ecommerceproject.dto.ProductUpdateRequest;
+import com.example.ecommerceproject.dto.ProductVariationCreateRequest;
+import com.example.ecommerceproject.dto.ProductVariationResponse;
+import com.example.ecommerceproject.dto.ProductVariationUpdateRequest;
 import com.example.ecommerceproject.dto.SellerCategoryResponseDTO;
 import com.example.ecommerceproject.dto.SellerProfileResponseDTO;
 import com.example.ecommerceproject.dto.SellerProfileUpdateRequestDTO;
 import com.example.ecommerceproject.entity.Address;
 import com.example.ecommerceproject.entity.Category;
+import com.example.ecommerceproject.entity.CategoryMetadataFieldValues;
+import com.example.ecommerceproject.entity.Product;
+import com.example.ecommerceproject.entity.ProductVariations;
 import com.example.ecommerceproject.entity.Seller;
 import com.example.ecommerceproject.entity.User;
 import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.repository.AddressRepository;
+import com.example.ecommerceproject.repository.CategoryMetadataFieldValuesRepository;
 import com.example.ecommerceproject.repository.CategoryRepository;
 import com.example.ecommerceproject.repository.SellerRepository;
 import com.example.ecommerceproject.service.EmailService;
@@ -50,8 +72,11 @@ public class SellerServiceImpl implements SellerService {
     String basePath;
 
     final SellerRepository sellerRepository;
+    final ProductRepository productRepository;
     final AddressRepository addressRepository;
     final CategoryRepository categoryRepository;
+    final CategoryMetadataFieldValuesRepository metadataFieldRepository;
+    final ProductVariationRepository variationRepository;
     final PasswordEncoder passwordEncoder;
     final EmailService emailService;
     final MessageService messageService;
@@ -136,6 +161,176 @@ public class SellerServiceImpl implements SellerService {
         return leafNodes.stream().map(this::mapToSellerCategoryDTO).collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional
+    public ApiResponse createProduct(Long sellerId, ProductCreateRequest dto) {
+        if(!categoryRepository.isLeafNode(dto.getCategoryId())){
+            throw new ApiException(messageService.get(MessageKeys.CATEGORY_MUST_BE_VALID_LEAF), 400);
+        }
+        if(productRepository.existsByNameAndBrandAndCategory_IdAndSeller_Id(dto.getName(), dto.getBrand(), dto.getCategoryId(), sellerId)){
+            throw new ApiException(messageService.get(MessageKeys.PRODUCT_MUST_BE_UNIQUE_FOR_BRAND_AND_CATEGORY), 400);
+        }
+        Product product = modelMapper.map(dto, Product.class);
+        
+        Seller seller = sellerRepository.getReferenceById(sellerId);
+        Category category = categoryRepository.getReferenceById(dto.getCategoryId());
+
+        product.setSeller(seller);
+        product.setCategory(category);
+        product.setIsActive(false);
+        productRepository.save(product);
+
+        return new ApiResponse(messageService.get(MessageKeys.PRODUCT_ADDED_SUCCESSFULLY));
+    }
+
+    @Override
+    public ApiResponse createProductVariation(Long sellerId, Long productId, ProductVariationCreateRequest dto) {
+        Product product = productRepository.findById(productId).orElseThrow(
+            () -> new ApiException(messageService.get(MessageKeys.PRODUCT_NOT_FOUND), 400)
+        );
+
+        if(!product.getIsActive()){
+            throw new ApiException(messageService.get(MessageKeys.PRODUCT_MUST_BE_ACTIVE_TO_ADD_VARIATION), 400);
+        }
+        validateImageNaming(productId, dto.getPrimaryImageUrl(), dto.getSecondaryImageUrls());
+        validateVariationMetadata(product.getCategory().getId(), productId, dto.getMetadata());
+
+        ProductVariations variations = modelMapper.map(dto, ProductVariations.class);
+        variations.setProduct(product);
+        variations.setIsActive(true);
+        variationRepository.save(variations);
+
+        return new ApiResponse(messageService.get(MessageKeys.PRODUCT_VARIATION_CREATED_SUCCESSFULLY));
+    }   
+
+    @Override
+    public Page<ProductResponse> getAllProducts(Long sellerId, int offset, int max, String sort, String order) {
+        Pageable pageable = PageRequest.of(offset, max, Sort.Direction.fromString(order.toUpperCase()), sort);
+        return productRepository.findAllBySeller_IdAndIsDeletedFalse(sellerId, pageable)
+                .map(product -> modelMapper.map(product, ProductResponse.class));
+    }
+
+    @Override
+    public Page<ProductVariationResponse> getProductVariations(Long sellerId, Long productId, int offset, int max,
+            String sort, String order) {
+        productRepository.findByIdAndSellerIdAndIsDeletedFalse(productId, sellerId)
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400));
+
+        Pageable pageable = PageRequest.of(offset, max, Sort.Direction.fromString(order.toUpperCase()), sort);
+        return variationRepository.findAllByProductId(productId, pageable)
+                .map(variation -> modelMapper.map(variation, ProductVariationResponse.class));
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse deleteProduct(Long sellerId, Long productId) {
+        Product product = productRepository.findByIdAndSellerIdAndIsDeletedFalse(sellerId, productId).orElseThrow(
+            () -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400)
+        );
+        productRepository.delete(product);
+        return new ApiResponse(messageService.get(MessageKeys.PRODUCT_DELETED_SUCCESSFULLY));
+    }
+
+    @Override
+    public ApiResponse updateProduct(Long sellerId, Long productId, ProductUpdateRequest dto) {
+        Product existingProduct = productRepository.findByIdAndSellerIdAndIsDeletedFalse(productId, sellerId)
+                .orElseThrow(() -> new RuntimeException("Validation Error: Invalid Product ID or unauthorized."));
+
+        if (dto.getName() != null && !dto.getName().equals(existingProduct.getName())) {
+             if (productRepository.existsByNameAndBrandAndCategory_IdAndSeller_Id(
+                    dto.getName(), existingProduct.getBrand(), existingProduct.getCategory().getId(), sellerId)) {
+                throw new ApiException(messageService.get(MessageKeys.PRODUCT_NAME_EXISTS), 400);
+            }
+        }
+
+        modelMapper.map(dto, existingProduct);
+        return new ApiResponse(messageService.get(MessageKeys.PRODUCT_UPDATED_SUCCESSFULLY));
+    }
+
+    @Override
+    public ApiResponse updateProductVariation(Long sellerId, Long productId, Long variationId,
+            ProductVariationUpdateRequest dto) {
+        Product product = productRepository.findByIdAndSellerIdAndIsDeletedFalse(productId, sellerId)
+                .orElseThrow(() -> new RuntimeException("Validation Error: Invalid Product ID or unauthorized."));
+        
+        if (!product.getIsActive()) {
+            throw new ApiException(messageService.get(MessageKeys.PRODUCT_MUST_BE_ACTIVE), 400);
+        }
+
+        ProductVariations existingVariation = variationRepository.findByIdAndProductId(variationId, productId)
+                .orElseThrow(() -> new RuntimeException("Validation Error: Invalid Product Variation ID."));
+
+        validateImageNaming(productId, dto.getPrimaryImageUrl(), dto.getSecondaryImageUrls());
+        if (dto.getMetadata() != null) {
+            validateVariationMetadata(product.getCategory().getId(), productId, dto.getMetadata());
+        }
+
+        modelMapper.map(dto, existingVariation);
+        return new ApiResponse(messageService.get(MessageKeys.PRODUCT_VARIATION_UPDATED_SUCCESSFULLY));
+    }
+
+    private void validateImageNaming(Long productId, String primaryImage, List<String> secondaryImages) {
+        if (primaryImage != null) {
+            String expectedPrimaryPattern = "(?i).*\\b" + productId + "\\.(jpg|png)$";
+            if (!primaryImage.matches(expectedPrimaryPattern)) {
+                throw new ApiException(messageService.get(MessageKeys.PRODUCT_PRIMARY_IMAGE_FORMAT, new Object[]{productId}), 400);
+            }
+        }
+
+        if (secondaryImages != null && !secondaryImages.isEmpty()) {
+            String expectedSecondaryPattern = "(?i).*\\bimage_\\d+\\.(jpg|png)$";
+            for (String secImage : secondaryImages) {
+                if (!secImage.matches(expectedSecondaryPattern)) {
+                    throw new ApiException(messageService.get(MessageKeys.PRODUCT_SECONDARY_IMAGE_FORMAT), 400);
+                }
+            }
+        }
+    }
+
+    private void validateVariationMetadata(Long categoryId, Long productId, Map<String, String> incomingMetadata) {
+        if (incomingMetadata == null || incomingMetadata.isEmpty()) {
+            throw new ApiException(messageService.get(MessageKeys.VARIATION_MUST_HAVE_ONE_VALUE), 400);
+        }
+
+        List<CategoryMetadataFieldValues> allowedFieldsFromDb = metadataFieldRepository.findAllByCategory_Id(categoryId);
+        if (allowedFieldsFromDb.isEmpty()) {
+            throw new ApiException(messageService.get(MessageKeys.PRODUCT_NO_METADATA_FIELDS), 400);
+        }
+
+        Map<String, List<String>> allowedMetadataMap = new HashMap<>();
+        for (CategoryMetadataFieldValues cmfv : allowedFieldsFromDb) {
+            String key = cmfv.getMetadataField().getName().toLowerCase();
+            List<String> values = Arrays.stream(cmfv.getValue().split(","))
+                                        .map(String::trim)
+                                        .map(String::toLowerCase)
+                                        .collect(Collectors.toList());
+            allowedMetadataMap.put(key, values);
+        }
+
+        for (Map.Entry<String, String> entry : incomingMetadata.entrySet()) {
+            String inputKey = entry.getKey().trim().toLowerCase();
+            String inputValue = entry.getValue().trim().toLowerCase();
+
+            if (!allowedMetadataMap.containsKey(inputKey)) {
+                throw new ApiException(messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_FIELD, new Object[]{inputKey}), 400);
+            }
+
+            List<String> allowedValues = allowedMetadataMap.get(inputKey);
+            if (!allowedValues.contains(inputValue)) {
+                throw new ApiException(messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_VALUE, new Object[]{entry.getValue(), allowedValues}), 400);
+            }
+        }
+
+        Page<ProductVariations> existingVariations = variationRepository.findAllByProductId(productId, PageRequest.of(0, 1));
+        if (existingVariations.hasContent()) {
+            Set<String> existingKeys = existingVariations.getContent().get(0).getMetadata().keySet();
+            Set<String> newKeys = incomingMetadata.keySet();
+
+            if (!existingKeys.equals(newKeys)) {
+                throw new ApiException(messageService.get(MessageKeys.PRODUCT_VARIATION_KEYS_MISMATCH, new Object[]{existingKeys}), 400);
+            }
+        }
+    }
 
     private SellerCategoryResponseDTO mapToSellerCategoryDTO(Category category) {
         SellerCategoryResponseDTO dto = new SellerCategoryResponseDTO();
@@ -186,7 +381,7 @@ public class SellerServiceImpl implements SellerService {
     }
 
     private String computeImageUrl(Long userId, Seller seller) {
-        File userDir = Paths.get(basePath, "users").toFile();
+        File userDir = Paths.get(basePath, messageService.get(MessageKeys.DIRECTORY_USERS)).toFile();
         if (!userDir.exists() || !userDir.isDirectory()) {
             return null;
         }
@@ -248,7 +443,7 @@ public class SellerServiceImpl implements SellerService {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null || !authentication.getAuthorities().stream()
-                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_SELLER"))) {
+                    .anyMatch(auth -> auth.getAuthority().equals(messageService.get(MessageKeys.ROLE_SELLER)))) {
                 throw new ApiException(messageService.get(MessageKeys.ERROR_ACCESS_DENIED), 403);
             }
         } catch (Exception e) {

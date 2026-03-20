@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.example.ecommerceproject.entity.Category;
@@ -16,4 +17,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSp
     List<Category> findAllLeafNodes();
     List<Category> findByParentCategoryIsNull();
     List<Category> findByParentCategoryId(Long parentId);
+    @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM Category c WHERE c.id = :id AND c.subCategories IS EMPTY")
+    boolean isLeafNode(@Param("id") Long id);
 }

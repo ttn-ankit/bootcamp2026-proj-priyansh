@@ -233,7 +233,7 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     private String computeImageUrl(Long userId, Customer customer) {
-        File userDir = Paths.get(basePath, "users").toFile();
+        File userDir = Paths.get(basePath, messageService.get(MessageKeys.DIRECTORY_USERS)).toFile();
         if (!userDir.exists() || !userDir.isDirectory()) {
             return null;
         }
@@ -313,7 +313,7 @@ public class CustomerServiceImpl implements CustomerService {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null || !authentication.getAuthorities().stream()
-                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_CUSTOMER"))) {
+                    .anyMatch(auth -> auth.getAuthority().equals(MessageKeys.ROLE_CUSTOMER))) {
                 throw new ApiException(messageService.get(MessageKeys.ERROR_ACCESS_DENIED), 403);
             }
         } catch (Exception e) {
