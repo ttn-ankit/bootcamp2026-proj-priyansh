@@ -156,26 +156,30 @@ public class SellerServiceImpl implements SellerService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<SellerCategoryResponseDTO> getAllLeafCategories(){
+    public List<SellerCategoryResponseDTO> getAllLeafCategories() {
         List<Category> leafNodes = categoryRepository.findAllLeafNodes();
         return leafNodes.stream().map(this::mapToSellerCategoryDTO).collect(Collectors.toList());
     }
 
-    @Override
+@Override
     @Transactional
-    public ApiResponse createProduct(Long sellerId, ProductCreateRequest dto) {
+    public ApiResponse createProduct(ProductCreateRequest dto) {
+        // 1. Get the authenticated seller directly from the security context
+        Seller seller = getActiveSellerByUserId(getCurrentUserId());
+        Long sellerId = seller.getId();
+
         if(!categoryRepository.isLeafNode(dto.getCategoryId())){
             throw new ApiException(messageService.get(MessageKeys.CATEGORY_MUST_BE_VALID_LEAF), 400);
         }
         if(productRepository.existsByNameAndBrandAndCategory_IdAndSeller_Id(dto.getName(), dto.getBrand(), dto.getCategoryId(), sellerId)){
             throw new ApiException(messageService.get(MessageKeys.PRODUCT_MUST_BE_UNIQUE_FOR_BRAND_AND_CATEGORY), 400);
         }
+        
         Product product = modelMapper.map(dto, Product.class);
         
-        Seller seller = sellerRepository.getReferenceById(sellerId);
-        Category category = categoryRepository.getReferenceById(dto.getCategoryId());
-
+        // 2. We already have the managed Seller entity, so we just set it directly!
         product.setSeller(seller);
+        Category category = categoryRepository.getReferenceById(dto.getCategoryId());
         product.setCategory(category);
         product.setIsActive(false);
         productRepository.save(product);
@@ -184,8 +188,11 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
-    public ApiResponse createProductVariation(Long sellerId, Long productId, ProductVariationCreateRequest dto) {
-        Product product = productRepository.findById(productId).orElseThrow(
+    @Transactional
+    public ApiResponse createProductVariation(Long productId, ProductVariationCreateRequest dto) {
+        Seller seller = getActiveSellerByUserId(getCurrentUserId());
+
+        Product product = productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId()).orElseThrow(
             () -> new ApiException(messageService.get(MessageKeys.PRODUCT_NOT_FOUND), 400)
         );
 
@@ -204,16 +211,21 @@ public class SellerServiceImpl implements SellerService {
     }   
 
     @Override
-    public Page<ProductResponse> getAllProducts(Long sellerId, int offset, int max, String sort, String order) {
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> getAllProducts(int offset, int max, String sort, String order) {
+        Seller seller = getActiveSellerByUserId(getCurrentUserId());
+
         Pageable pageable = PageRequest.of(offset, max, Sort.Direction.fromString(order.toUpperCase()), sort);
-        return productRepository.findAllBySeller_IdAndIsDeletedFalse(sellerId, pageable)
+        return productRepository.findAllBySeller_IdAndIsDeletedFalse(seller.getId(), pageable)
                 .map(product -> modelMapper.map(product, ProductResponse.class));
     }
 
     @Override
-    public Page<ProductVariationResponse> getProductVariations(Long sellerId, Long productId, int offset, int max,
-            String sort, String order) {
-        productRepository.findByIdAndSellerIdAndIsDeletedFalse(productId, sellerId)
+    @Transactional(readOnly = true)
+    public Page<ProductVariationResponse> getProductVariations(Long productId, int offset, int max, String sort, String order) {
+        Seller seller = getActiveSellerByUserId(getCurrentUserId());
+
+        productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId())
                 .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400));
 
         Pageable pageable = PageRequest.of(offset, max, Sort.Direction.fromString(order.toUpperCase()), sort);
@@ -223,8 +235,10 @@ public class SellerServiceImpl implements SellerService {
 
     @Override
     @Transactional
-    public ApiResponse deleteProduct(Long sellerId, Long productId) {
-        Product product = productRepository.findByIdAndSellerIdAndIsDeletedFalse(sellerId, productId).orElseThrow(
+    public ApiResponse deleteProduct(Long productId) {
+        Seller seller = getActiveSellerByUserId(getCurrentUserId());
+
+        Product product = productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId()).orElseThrow(
             () -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400)
         );
         productRepository.delete(product);
@@ -232,9 +246,13 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
-    public ApiResponse updateProduct(Long sellerId, Long productId, ProductUpdateRequest dto) {
-        Product existingProduct = productRepository.findByIdAndSellerIdAndIsDeletedFalse(productId, sellerId)
-                .orElseThrow(() -> new RuntimeException("Validation Error: Invalid Product ID or unauthorized."));
+    @Transactional
+    public ApiResponse updateProduct(Long productId, ProductUpdateRequest dto) {
+        Seller seller = getActiveSellerByUserId(getCurrentUserId());
+        Long sellerId = seller.getId();
+
+        Product existingProduct = productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, sellerId)
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400));
 
         if (dto.getName() != null && !dto.getName().equals(existingProduct.getName())) {
              if (productRepository.existsByNameAndBrandAndCategory_IdAndSeller_Id(
@@ -248,17 +266,19 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
-    public ApiResponse updateProductVariation(Long sellerId, Long productId, Long variationId,
-            ProductVariationUpdateRequest dto) {
-        Product product = productRepository.findByIdAndSellerIdAndIsDeletedFalse(productId, sellerId)
-                .orElseThrow(() -> new RuntimeException("Validation Error: Invalid Product ID or unauthorized."));
+    @Transactional
+    public ApiResponse updateProductVariation(Long productId, Long variationId, ProductVariationUpdateRequest dto) {
+        Seller seller = getActiveSellerByUserId(getCurrentUserId());
+
+        Product product = productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId())
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400));
         
         if (!product.getIsActive()) {
             throw new ApiException(messageService.get(MessageKeys.PRODUCT_MUST_BE_ACTIVE), 400);
         }
 
         ProductVariations existingVariation = variationRepository.findByIdAndProductId(variationId, productId)
-                .orElseThrow(() -> new RuntimeException("Validation Error: Invalid Product Variation ID."));
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400));
 
         validateImageNaming(productId, dto.getPrimaryImageUrl(), dto.getSecondaryImageUrls());
         if (dto.getMetadata() != null) {
@@ -273,7 +293,8 @@ public class SellerServiceImpl implements SellerService {
         if (primaryImage != null) {
             String expectedPrimaryPattern = "(?i).*\\b" + productId + "\\.(jpg|png)$";
             if (!primaryImage.matches(expectedPrimaryPattern)) {
-                throw new ApiException(messageService.get(MessageKeys.PRODUCT_PRIMARY_IMAGE_FORMAT, new Object[]{productId}), 400);
+                throw new ApiException(
+                        messageService.get(MessageKeys.PRODUCT_PRIMARY_IMAGE_FORMAT, new Object[] { productId }), 400);
             }
         }
 
@@ -292,7 +313,8 @@ public class SellerServiceImpl implements SellerService {
             throw new ApiException(messageService.get(MessageKeys.VARIATION_MUST_HAVE_ONE_VALUE), 400);
         }
 
-        List<CategoryMetadataFieldValues> allowedFieldsFromDb = metadataFieldRepository.findAllByCategory_Id(categoryId);
+        List<CategoryMetadataFieldValues> allowedFieldsFromDb = metadataFieldRepository
+                .findAllByCategory_Id(categoryId);
         if (allowedFieldsFromDb.isEmpty()) {
             throw new ApiException(messageService.get(MessageKeys.PRODUCT_NO_METADATA_FIELDS), 400);
         }
@@ -301,9 +323,9 @@ public class SellerServiceImpl implements SellerService {
         for (CategoryMetadataFieldValues cmfv : allowedFieldsFromDb) {
             String key = cmfv.getMetadataField().getName().toLowerCase();
             List<String> values = Arrays.stream(cmfv.getValue().split(","))
-                                        .map(String::trim)
-                                        .map(String::toLowerCase)
-                                        .collect(Collectors.toList());
+                    .map(String::trim)
+                    .map(String::toLowerCase)
+                    .collect(Collectors.toList());
             allowedMetadataMap.put(key, values);
         }
 
@@ -312,22 +334,27 @@ public class SellerServiceImpl implements SellerService {
             String inputValue = entry.getValue().trim().toLowerCase();
 
             if (!allowedMetadataMap.containsKey(inputKey)) {
-                throw new ApiException(messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_FIELD, new Object[]{inputKey}), 400);
+                throw new ApiException(
+                        messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_FIELD, new Object[] { inputKey }), 400);
             }
 
             List<String> allowedValues = allowedMetadataMap.get(inputKey);
             if (!allowedValues.contains(inputValue)) {
-                throw new ApiException(messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_VALUE, new Object[]{entry.getValue(), allowedValues}), 400);
+                throw new ApiException(messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_VALUE,
+                        new Object[] { entry.getValue(), allowedValues }), 400);
             }
         }
 
-        Page<ProductVariations> existingVariations = variationRepository.findAllByProductId(productId, PageRequest.of(0, 1));
+        Page<ProductVariations> existingVariations = variationRepository.findAllByProductId(productId,
+                PageRequest.of(0, 1));
         if (existingVariations.hasContent()) {
             Set<String> existingKeys = existingVariations.getContent().get(0).getMetadata().keySet();
             Set<String> newKeys = incomingMetadata.keySet();
 
             if (!existingKeys.equals(newKeys)) {
-                throw new ApiException(messageService.get(MessageKeys.PRODUCT_VARIATION_KEYS_MISMATCH, new Object[]{existingKeys}), 400);
+                throw new ApiException(
+                        messageService.get(MessageKeys.PRODUCT_VARIATION_KEYS_MISMATCH, new Object[] { existingKeys }),
+                        400);
             }
         }
     }
@@ -337,7 +364,7 @@ public class SellerServiceImpl implements SellerService {
         dto.setCategoryId(category.getId());
         dto.setCategoryName(category.getName());
         dto.setParentChain(buildParentChain(category));
-        
+
         List<CategoryMetadataDTO> metadataDTOs = category.getFieldValues().stream().map(fv -> {
             CategoryMetadataDTO metaDto = new CategoryMetadataDTO();
             metaDto.setMetadataFieldId(fv.getMetadataField().getId());
@@ -353,12 +380,12 @@ public class SellerServiceImpl implements SellerService {
     private String buildParentChain(Category category) {
         StringBuilder chain = new StringBuilder(category.getName());
         Category parent = category.getParentCategory();
-        
+
         while (parent != null) {
             chain.insert(0, parent.getName() + " > ");
             parent = parent.getParentCategory();
         }
-        
+
         return chain.toString();
     }
 
@@ -385,28 +412,29 @@ public class SellerServiceImpl implements SellerService {
         if (!userDir.exists() || !userDir.isDirectory()) {
             return null;
         }
-        Long[] idsToTry = {userId, seller != null ? seller.getId() : null};
-        
+        Long[] idsToTry = { userId, seller != null ? seller.getId() : null };
+
         for (Long id : idsToTry) {
-            if (id == null) continue;
-            
+            if (id == null)
+                continue;
+
             String imageUrl = findImageForId(userDir, id);
             if (imageUrl != null) {
                 return imageUrl;
             }
         }
-        
+
         return null;
     }
 
     private String findImageForId(File directory, Long id) {
         File[] files = directory.listFiles((dir, name) -> {
             String lowerName = name.toLowerCase();
-            return lowerName.startsWith(id + ".") && 
-                   (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || 
-                    lowerName.endsWith(".png") || lowerName.endsWith(".gif"));
+            return lowerName.startsWith(id + ".") &&
+                    (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") ||
+                            lowerName.endsWith(".png") || lowerName.endsWith(".gif"));
         });
-        
+
         return (files != null && files.length > 0) ? "/images/users/" + files[0].getName() : null;
     }
 

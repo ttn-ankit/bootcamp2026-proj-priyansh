@@ -30,7 +30,23 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
         String name, String brand, Long categoryId, Long sellerId
     );
 
-    Optional<Product> findByIdAndSellerIdAndIsDeletedFalse(Long id, Long sellerId);
+    Optional<Product> findByIdAndSeller_IdAndIsDeletedFalse(Long id, Long sellerId);
 
     Page<Product> findAllBySeller_IdAndIsDeletedFalse(Long id, Pageable pageable);
+
+    Optional<Product> findByIdAndIsDeletedFalseAndIsActiveTrue(Long productId);
+
+    @Query("SELECT p FROM Product p WHERE p.category.id IN :categoryIds " +
+           "AND p.isActive = true AND p.isDeleted = false " +
+           "AND EXISTS (SELECT v FROM ProductVariations v WHERE v.product = p AND v.isActive = true)")
+    Page<Product> findActiveProductsWithActiveVariationsByCategoryIds(
+            @Param("categoryIds") List<Long> categoryIds, Pageable pageable);
+
+    @Query("SELECT p FROM Product p WHERE p.category.id = :categoryId AND p.id != :excludeProductId " +
+           "AND p.isActive = true AND p.isDeleted = false " +
+           "AND EXISTS (SELECT v FROM ProductVariations v WHERE v.product = p AND v.isActive = true)")
+    Page<Product> findSimilarProducts(
+            @Param("categoryId") Long categoryId, 
+            @Param("excludeProductId") Long excludeProductId, 
+            Pageable pageable);
 }

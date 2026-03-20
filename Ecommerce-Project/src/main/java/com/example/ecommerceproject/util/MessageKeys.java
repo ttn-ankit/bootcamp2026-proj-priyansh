@@ -101,6 +101,7 @@ public final class MessageKeys {
     public static final String PRODUCT_DELETED_SUCCESSFULLY = "product.deleted_successfully";
     public static final String PRODUCT_UPDATED_SUCCESSFULLY = "product.updated_successfully";
     public static final String PRODUCT_VARIATION_UPDATED_SUCCESSFULLY = "product.variation_updated_successfully";
+    public static final String PRODUCT_VARIATIONS_NOT_AVAILABLE = "product.variations_not_available";
     
     // Error Messages
     public static final String ERROR_INTERNAL_SERVER = "error.internal_server";
@@ -204,5 +205,5 @@ public final class MessageKeys {
     public static final String IMAGES_PATH_PREFIX = "images.path_prefix";
     public static final String RESOURCE_NOT_FOUND_MESSAGE = "resource.not_found_message";
     public static final String PATH_SEPARATOR = "path.separator";
-
+    
 }

@@ -24,11 +24,11 @@ public interface SellerService {
     ApiResponseDTO updatePassword(Long userId, PasswordUpdateRequestDTO dto);
     ApiResponseDTO updateAddress(Long userId, AddressPartialUpdateRequestDTO dto);
     List<SellerCategoryResponseDTO> getAllLeafCategories();
-    ApiResponse createProduct(Long sellerId, ProductCreateRequest dto);
-    ApiResponse createProductVariation(Long sellerId, Long productId, ProductVariationCreateRequest dto);
-    Page<ProductResponse> getAllProducts(Long sellerId, int offset, int max, String sort, String order);
-    Page<ProductVariationResponse> getProductVariations(Long sellerId, Long productId, int offset, int max, String sort, String order);
-    ApiResponse deleteProduct(Long sellerId, Long productId);
-    ApiResponse updateProduct(Long sellerId, Long productId, ProductUpdateRequest dto);
-    ApiResponse updateProductVariation(Long sellerId, Long productId, Long variationId, ProductVariationUpdateRequest dto);
+    ApiResponse createProduct(ProductCreateRequest dto);
+    ApiResponse createProductVariation(Long productId, ProductVariationCreateRequest dto);
+    Page<ProductResponse> getAllProducts(int offset, int max, String sort, String order);
+    Page<ProductVariationResponse> getProductVariations(Long productId, int offset, int max, String sort, String order);
+    ApiResponse deleteProduct(Long productId);
+    ApiResponse updateProduct(Long productId, ProductUpdateRequest dto);
+    ApiResponse updateProductVariation(Long productId, Long variationId, ProductVariationUpdateRequest dto);
 }

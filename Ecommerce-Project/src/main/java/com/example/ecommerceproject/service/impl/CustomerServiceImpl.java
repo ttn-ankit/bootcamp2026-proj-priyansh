@@ -10,6 +10,10 @@ import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,12 +27,18 @@ import com.example.ecommerceproject.dto.ApiResponseDTO;
 import com.example.ecommerceproject.dto.CategoryFilterDetailsDTO;
 import com.example.ecommerceproject.dto.CategoryMetadataDTO;
 import com.example.ecommerceproject.dto.CategoryResponseDTO;
+import com.example.ecommerceproject.dto.CustomerProductListResponseDTO;
+import com.example.ecommerceproject.dto.CustomerProductViewResponseDTO;
 import com.example.ecommerceproject.dto.CustomerProfileResponseDTO;
 import com.example.ecommerceproject.dto.CustomerProfileUpdateRequestDTO;
 import com.example.ecommerceproject.dto.PasswordUpdateRequestDTO;
+import com.example.ecommerceproject.dto.VariationDetailsDTO;
+import com.example.ecommerceproject.dto.VariationListDTO;
 import com.example.ecommerceproject.entity.Address;
 import com.example.ecommerceproject.entity.Category;
 import com.example.ecommerceproject.entity.Customer;
+import com.example.ecommerceproject.entity.Product;
+import com.example.ecommerceproject.entity.ProductVariations;
 import com.example.ecommerceproject.entity.User;
 import com.example.ecommerceproject.enums.AddressType;
 import com.example.ecommerceproject.exception.ApiException;
@@ -202,7 +212,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     @Transactional(readOnly = true)
-    public CategoryFilterDetailsDTO getCategoryFilteringDetails(Long categoryId){
+    public CategoryFilterDetailsDTO getCategoryFilteringDetails(Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ApiException(MessageKeys.INVALID_CATEGORY_ID, 400));
 
@@ -215,21 +225,95 @@ public class CustomerServiceImpl implements CustomerService {
             metaDTO.setPossibleValues(fv.getValue());
             return metaDTO;
         }).collect(Collectors.toList());
-        
+
         filterDTO.setMetadataFields(metadataList);
 
         List<Long> allRelatedCategoryIds = new ArrayList<>();
         collectCategoryIdsRecursively(category, allRelatedCategoryIds);
-        
+
         filterDTO.setBrands(productRepository.findDistinctBrandsByCategoryIds(allRelatedCategoryIds));
-        
+
         Double minPrice = productRepository.findMinPriceByCategoryIds(allRelatedCategoryIds);
         Double maxPrice = productRepository.findMaxPriceByCategoryIds(allRelatedCategoryIds);
-        
+
         filterDTO.setMinPrice(minPrice != null ? minPrice : 0.0);
         filterDTO.setMaxPrice(maxPrice != null ? maxPrice : 0.0);
 
         return filterDTO;
+    }
+
+    @Transactional(readOnly = true)
+    public CustomerProductViewResponseDTO getProductDetails(Long productId) {
+        Product product = productRepository.findByIdAndIsDeletedFalseAndIsActiveTrue(productId)
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.PRODUCT_NOT_FOUND), 400));
+
+        List<ProductVariations> activeVariations = product.getProductVariationList().stream()
+                .filter(ProductVariations::getIsActive)
+                .collect(Collectors.toList());
+
+        if (activeVariations.isEmpty()) {
+            throw new ApiException(messageService.get(MessageKeys.PRODUCT_VARIATIONS_NOT_AVAILABLE), 400);
+        }
+
+        CustomerProductViewResponseDTO response = mapper.map(product, CustomerProductViewResponseDTO.class);
+        response.setVariations(activeVariations.stream()
+                .map(v -> mapper.map(v, VariationDetailsDTO.class))
+                .collect(Collectors.toList()));
+
+        return response;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CustomerProductListResponseDTO> getAllProductsByCategory(
+            Long categoryId, int offset, int max, String sort, String order) {
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.INVALID_CATEGORY_ID), 400));
+
+        List<Long> categoryIds = extractAllCategoryIds(category);
+
+        Pageable pageable = PageRequest.of(offset, max, Sort.Direction.fromString(order.toUpperCase()), sort);
+
+        return productRepository.findActiveProductsWithActiveVariationsByCategoryIds(categoryIds, pageable)
+                .map(this::mapToProductListResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CustomerProductListResponseDTO> getSimilarProducts(
+            Long productId, int offset, int max, String sort, String order) {
+        Product baseProduct = productRepository.findByIdAndIsDeletedFalseAndIsActiveTrue(productId)
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.PRODUCT_NOT_FOUND), 400));
+
+        Long categoryId = baseProduct.getCategory().getId();
+
+        Pageable pageable = PageRequest.of(offset, max, Sort.Direction.fromString(order.toUpperCase()), sort);
+
+        return productRepository.findSimilarProducts(categoryId, productId, pageable)
+                .map(this::mapToProductListResponse);
+    }
+
+    private List<Long> extractAllCategoryIds(Category category) {
+        List<Long> ids = new ArrayList<>();
+        ids.add(category.getId());
+        
+        if (category.getSubCategories() != null && !category.getSubCategories().isEmpty()) {
+            for (Category child : category.getSubCategories()) {
+                ids.addAll(extractAllCategoryIds(child));
+            }
+        }
+        return ids;
+    }
+
+    private CustomerProductListResponseDTO mapToProductListResponse(Product product) {
+        CustomerProductListResponseDTO dto = mapper.map(product, CustomerProductListResponseDTO.class);
+        
+        List<VariationListDTO> variationDTOs = product.getProductVariationList().stream()
+                .filter(ProductVariations::getIsActive)
+                .map(v -> mapper.map(v, VariationListDTO.class))
+                .collect(Collectors.toList());
+                
+        dto.setVariations(variationDTOs);
+        return dto;
     }
 
     private String computeImageUrl(Long userId, Customer customer) {
@@ -254,8 +338,8 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     private void collectCategoryIdsRecursively(Category category, List<Long> ids) {
-        ids.add(category.getId()); 
-        
+        ids.add(category.getId());
+
         if (category.getSubCategories() != null && !category.getSubCategories().isEmpty()) {
             for (Category child : category.getSubCategories()) {
                 collectCategoryIdsRecursively(child, ids);

@@ -2,6 +2,7 @@ package com.example.ecommerceproject.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -21,6 +22,8 @@ import com.example.ecommerceproject.dto.AddressResponseDTO;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
 import com.example.ecommerceproject.dto.CategoryFilterDetailsDTO;
 import com.example.ecommerceproject.dto.CategoryResponseDTO;
+import com.example.ecommerceproject.dto.CustomerProductListResponseDTO;
+import com.example.ecommerceproject.dto.CustomerProductViewResponseDTO;
 import com.example.ecommerceproject.dto.CustomerProfileResponseDTO;
 import com.example.ecommerceproject.dto.CustomerProfileUpdateRequestDTO;
 import com.example.ecommerceproject.dto.PasswordUpdateRequestDTO;
@@ -137,5 +140,34 @@ public class CustomerController {
             @Positive(message = "{validation.invalid_id_format}")
             Long categoryId) {
         return ResponseEntity.ok(customerService.getCategoryFilteringDetails(categoryId));
+    }
+
+    @GetMapping("/product/{productId}")
+    @Operation(summary = "View a single product", description = "Retrieves detailed information of an active product including all variations and images.")
+    public ResponseEntity<CustomerProductViewResponseDTO> getProductDetails(
+            @Parameter(description = "ID of the product to view") @PathVariable Long productId) {
+        return ResponseEntity.ok(customerService.getProductDetails(productId));
+    }
+
+    @GetMapping("/category/{categoryId}/products")
+    @Operation(summary = "View products by category", description = "Retrieves a paginated list of active products for a category (and its subcategories).")
+    public ResponseEntity<Page<CustomerProductListResponseDTO>> getProductsByCategory(
+            @Parameter(description = "ID of the category") @PathVariable Long categoryId,
+            @Parameter(description = "Max records per page") @RequestParam(defaultValue = "10") int max,
+            @Parameter(description = "Page offset (0-indexed)") @RequestParam(defaultValue = "0") int offset,
+            @Parameter(description = "Sort by field") @RequestParam(defaultValue = "id") String sort,
+            @Parameter(description = "Sort order (ASC/DESC)") @RequestParam(defaultValue = "ASC") String order) {
+        return ResponseEntity.ok(customerService.getAllProductsByCategory(categoryId, offset, max, sort, order));
+    }
+
+    @GetMapping("/{productId}/similar")
+    @Operation(summary = "View similar products", description = "Retrieves a paginated list of active products belonging to the same category as the given product.")
+    public ResponseEntity<Page<CustomerProductListResponseDTO>> getSimilarProducts(
+            @Parameter(description = "ID of the base product") @PathVariable Long productId,
+            @Parameter(description = "Max records per page") @RequestParam(defaultValue = "10") int max,
+            @Parameter(description = "Page offset (0-indexed)") @RequestParam(defaultValue = "0") int offset,
+            @Parameter(description = "Sort by field") @RequestParam(defaultValue = "id") String sort,
+            @Parameter(description = "Sort order (ASC/DESC)") @RequestParam(defaultValue = "ASC") String order) {
+        return ResponseEntity.ok(customerService.getSimilarProducts(productId, offset, max, sort, order));
     }
 }

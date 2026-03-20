@@ -3,6 +3,7 @@ package com.example.ecommerceproject.controller;
 import com.example.ecommerceproject.dto.*;
 import com.example.ecommerceproject.service.SellerService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -70,5 +72,63 @@ public class SellerProfileController {
     @GetMapping("/category/all")
     public ResponseEntity<List<SellerCategoryResponseDTO>> listAllCategories() {
         return ResponseEntity.ok(sellerService.getAllLeafCategories());
+    }
+
+    @PostMapping("/products")
+    @Operation(summary = "Add a product", description = "Creates a new product (defaults to inactive state).")
+    public ResponseEntity<ApiResponse> addProduct(@Valid @RequestBody ProductCreateRequest request) {
+        return ResponseEntity.ok(sellerService.createProduct(request));
+    }
+
+    @PostMapping("/{productId}/variations")
+    @Operation(summary = "Add a product variation", description = "Adds a variation (e.g., size/color) to an active product.")
+    public ResponseEntity<ApiResponse> addProductVariation(
+            @Parameter(description = "ID of the parent product") @PathVariable Long productId,
+            @Valid @RequestBody ProductVariationCreateRequest request) {
+        return ResponseEntity.ok(sellerService.createProductVariation(productId, request));
+    }
+
+    @GetMapping("/products")
+    @Operation(summary = "View all products", description = "Retrieves paginated non-deleted products for the logged-in seller.")
+    public ResponseEntity<Page<ProductResponse>> viewAllProducts(
+            @RequestParam(defaultValue = "10") int max,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "id") String sort,
+            @RequestParam(defaultValue = "ASC") String order) {
+        return ResponseEntity.ok(sellerService.getAllProducts(offset, max, sort, order));
+    }
+
+    @GetMapping("/{productId}/variations")
+    @Operation(summary = "View product variations", description = "Retrieves paginated variations for a specific product.")
+    public ResponseEntity<Page<ProductVariationResponse>> viewProductVariations(
+            @PathVariable Long productId,
+            @RequestParam(defaultValue = "10") int max,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "id") String sort,
+            @RequestParam(defaultValue = "ASC") String order) {
+        return ResponseEntity.ok(sellerService.getProductVariations(productId, offset, max, sort, order));
+    }
+
+    @DeleteMapping("/{productId}")
+    @Operation(summary = "Delete a product", description = "Soft deletes a specific product.")
+    public ResponseEntity<ApiResponse> deleteProduct(@PathVariable Long productId) {
+        return ResponseEntity.ok(sellerService.deleteProduct(productId));
+    }
+
+    @PutMapping("/{productId}")
+    @Operation(summary = "Update a product", description = "Updates optional fields of an existing product.")
+    public ResponseEntity<ApiResponse> updateProduct(
+            @PathVariable Long productId,
+            @Valid @RequestBody ProductUpdateRequest request) {
+        return ResponseEntity.ok(sellerService.updateProduct(productId, request));
+    }
+
+    @PutMapping("/product/{productId}/variations/{variationId}")
+    @Operation(summary = "Update a variation", description = "Updates details of a specific product variation.")
+    public ResponseEntity<ApiResponse> updateProductVariation(
+            @PathVariable Long productId,
+            @PathVariable Long variationId,
+            @Valid @RequestBody ProductVariationUpdateRequest request) {
+        return ResponseEntity.ok(sellerService.updateProductVariation(productId, variationId, request));
     }
 }
