@@ -49,4 +49,6 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             @Param("categoryId") Long categoryId, 
             @Param("excludeProductId") Long excludeProductId, 
             Pageable pageable);
+
+    boolean existsByIdAndSeller_User_Id(Long productId, Long userId);
 }

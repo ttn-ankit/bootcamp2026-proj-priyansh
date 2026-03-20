@@ -33,9 +33,8 @@ public class ProductVariations {
     @Column(columnDefinition = "json")
     private Map<String, Object> metadata;
 
-    @Lob
-    @Column(name = "primary_image_name", columnDefinition = "LONGBLOB")
-    private byte[] primaryImageName;
+    @Column(name = "primary_image_name")
+    private String primaryImageName;
 
     @Column(name = "is_active")
     Boolean isActive;

@@ -126,4 +126,15 @@ public class EmailServiceImpl implements EmailService {
         
         mailSender.send(message);
     }
+
+    @Override
+    public void sendProductCreatedNotificationToAdmin(String sellerName, String sellerEmail, String productName, String categoryName, String brand) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(MessageKeys.PROTECTED_ADMIN_EMAIL);
+        message.setSubject(messageService.get(MessageKeys.EMAIL_PRODUCT_CREATED_SUBJECT));
+        message.setText(messageService.get(MessageKeys.EMAIL_PRODUCT_CREATED_BODY, 
+            new Object[]{sellerName, sellerEmail, productName, categoryName, brand}));
+        
+        mailSender.send(message);
+    }
 }

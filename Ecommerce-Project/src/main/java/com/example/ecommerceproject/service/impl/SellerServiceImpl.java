@@ -5,7 +5,8 @@ import com.example.ecommerceproject.repository.ProductVariationRepository;
 
 import static lombok.AccessLevel.PRIVATE;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -16,7 +17,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -62,14 +62,13 @@ import com.example.ecommerceproject.enums.AddressType;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE)
+@Slf4j
 public class SellerServiceImpl implements SellerService {
-
-    @Value("${app.image.base-path}")
-    String basePath;
 
     final SellerRepository sellerRepository;
     final ProductRepository productRepository;
@@ -164,7 +163,6 @@ public class SellerServiceImpl implements SellerService {
 @Override
     @Transactional
     public ApiResponse createProduct(ProductCreateRequest dto) {
-        // 1. Get the authenticated seller directly from the security context
         Seller seller = getActiveSellerByUserId(getCurrentUserId());
         Long sellerId = seller.getId();
 
@@ -174,15 +172,28 @@ public class SellerServiceImpl implements SellerService {
         if(productRepository.existsByNameAndBrandAndCategory_IdAndSeller_Id(dto.getName(), dto.getBrand(), dto.getCategoryId(), sellerId)){
             throw new ApiException(messageService.get(MessageKeys.PRODUCT_MUST_BE_UNIQUE_FOR_BRAND_AND_CATEGORY), 400);
         }
-        
+
         Product product = modelMapper.map(dto, Product.class);
-        
-        // 2. We already have the managed Seller entity, so we just set it directly!
+
         product.setSeller(seller);
         Category category = categoryRepository.getReferenceById(dto.getCategoryId());
         product.setCategory(category);
         product.setIsActive(false);
         productRepository.save(product);
+
+        try {
+            String sellerName = seller.getUser().getFirstName() + " " + seller.getUser().getLastName();
+            String sellerEmail = seller.getUser().getEmail();
+            emailService.sendProductCreatedNotificationToAdmin(
+                sellerName,
+                sellerEmail,
+                product.getName(),
+                category.getName(),
+                product.getBrand()
+            );
+        } catch (Exception e) {
+            log.warn("Failed to send product creation notification email for product: {}", product.getName(), e);
+        }
 
         return new ApiResponse(messageService.get(MessageKeys.PRODUCT_ADDED_SUCCESSFULLY));
     }
@@ -408,34 +419,42 @@ public class SellerServiceImpl implements SellerService {
     }
 
     private String computeImageUrl(Long userId, Seller seller) {
-        File userDir = Paths.get(basePath, messageService.get(MessageKeys.DIRECTORY_USERS)).toFile();
-        if (!userDir.exists() || !userDir.isDirectory()) {
+        try {
+            Path userDir = Paths.get("uploads/users/");
+            if (!Files.exists(userDir)) {
+                return null;
+            }
+            
+            Long[] idsToTry = { userId, seller != null ? seller.getId() : null };
+
+            for (Long id : idsToTry) {
+                if (id == null) continue;
+
+                String imageUrl = findImageForId(id);
+                if (imageUrl != null) {
+                    return imageUrl;
+                }
+            }
+
+            return null;
+        } catch (Exception e) {
             return null;
         }
-        Long[] idsToTry = { userId, seller != null ? seller.getId() : null };
-
-        for (Long id : idsToTry) {
-            if (id == null)
-                continue;
-
-            String imageUrl = findImageForId(userDir, id);
-            if (imageUrl != null) {
-                return imageUrl;
-            }
-        }
-
-        return null;
     }
 
-    private String findImageForId(File directory, Long id) {
-        File[] files = directory.listFiles((dir, name) -> {
-            String lowerName = name.toLowerCase();
-            return lowerName.startsWith(id + ".") &&
-                    (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") ||
-                            lowerName.endsWith(".png") || lowerName.endsWith(".gif"));
-        });
-
-        return (files != null && files.length > 0) ? "/images/users/" + files[0].getName() : null;
+    private String findImageForId(Long id) {
+        try {
+            Path userDir = Paths.get("uploads/users/");
+            for (String extension : Arrays.asList("jpg", "jpeg", "png")) {
+                Path imagePath = userDir.resolve(id + "." + extension);
+                if (Files.exists(imagePath)) {
+                    return "/api/user/" + id + "/image/" + id + "." + extension;
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void validateSellerAddressLabel(AddressType label) {

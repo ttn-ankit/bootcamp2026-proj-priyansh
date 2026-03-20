@@ -3,12 +3,17 @@ package com.example.ecommerceproject.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import com.example.ecommerceproject.dto.ApiResponseDTO;
 import com.example.ecommerceproject.service.ImageUploadService;
@@ -22,10 +27,10 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/user")
-@PreAuthorize("hasRole('CUSTOMER') or hasRole('SELLER')")
+@PreAuthorize("hasRole('CUSTOMER') or hasRole('SELLER') or hasRole('ADMIN')")
 @RequiredArgsConstructor
 @Validated
-@Tag(name = "User Image Management", description = "Common APIs for both Customers and Sellers to manage profile images")
+@Tag(name = "User Image Management", description = "Common APIs for Customers, Sellers and Admins to manage profile images")
 @SecurityRequirement(name = "bearerAuth")
 public class ImageUploadController {
 
@@ -45,5 +50,25 @@ public class ImageUploadController {
             MultipartFile file) {
         
         return ResponseEntity.ok(imageUploadService.uploadUserImage(userId, file));
+    }
+
+    @Operation(summary = "Get User Image", 
+               description = "Retrieve user profile image. Customers/Sellers can only access their own images. Admins can access any user's image.")
+    @GetMapping("/{userId}/image/{filename}")
+    public ResponseEntity<Resource> getUserImage(
+            @Parameter(description = "User ID", required = true)
+            @PathVariable 
+            @Positive(message = "{validation.invalid_id_format}")
+            Long userId,
+            
+            @Parameter(description = "Image filename", required = true)
+            @PathVariable 
+            String filename) {
+        
+        Resource resource = imageUploadService.getUserImage(userId, filename);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                .body(resource);
     }
 }

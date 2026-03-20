@@ -1,15 +1,16 @@
 package com.example.ecommerceproject.service.impl;
 
 import static lombok.AccessLevel.PRIVATE;
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -58,9 +59,6 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE)
 public class CustomerServiceImpl implements CustomerService {
-
-    @Value("${app.image.base-path}")
-    private String basePath;
 
     final CustomerRepository customerRepository;
     final AddressRepository addressRepository;
@@ -317,24 +315,27 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     private String computeImageUrl(Long userId, Customer customer) {
-        File userDir = Paths.get(basePath, messageService.get(MessageKeys.DIRECTORY_USERS)).toFile();
-        if (!userDir.exists() || !userDir.isDirectory()) {
+        try {
+            Path userDir = Paths.get("uploads/users/");
+            if (!Files.exists(userDir)) {
+                return null;
+            }
+
+            Long[] idsToTry = { userId, customer != null ? customer.getId() : null };
+
+            for (Long id : idsToTry) {
+                if (id == null) continue;
+
+                String imageUrl = findImageForId(id);
+                if (imageUrl != null) {
+                    return imageUrl;
+                }
+            }
+
+            return null;
+        } catch (Exception e) {
             return null;
         }
-
-        Long[] idsToTry = { userId, customer != null ? customer.getId() : null };
-
-        for (Long id : idsToTry) {
-            if (id == null)
-                continue;
-
-            String imageUrl = findImageForId(userDir, id);
-            if (imageUrl != null) {
-                return imageUrl;
-            }
-        }
-
-        return null;
     }
 
     private void collectCategoryIdsRecursively(Category category, List<Long> ids) {
@@ -347,15 +348,19 @@ public class CustomerServiceImpl implements CustomerService {
         }
     }
 
-    private String findImageForId(File directory, Long id) {
-        File[] files = directory.listFiles((dir, name) -> {
-            String lowerName = name.toLowerCase();
-            return lowerName.startsWith(id + ".") &&
-                    (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") ||
-                            lowerName.endsWith(".png") || lowerName.endsWith(".gif"));
-        });
-
-        return (files != null && files.length > 0) ? "/images/users/" + files[0].getName() : null;
+    private String findImageForId(Long id) {
+        try {
+            Path userDir = Paths.get("uploads/users/");
+            for (String extension : Arrays.asList("jpg", "jpeg", "png")) {
+                Path imagePath = userDir.resolve(id + "." + extension);
+                if (Files.exists(imagePath)) {
+                    return "/api/user/" + id + "/image/" + id + "." + extension;
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private Address getValidAddressForUser(Long userId, Long addressId) {

@@ -59,7 +59,6 @@ public final class MessageKeys {
     public static final String VALIDATION_SELLER_SINGLE_ADDRESS = "validation.seller_single_address";
     
     // Directory and Role Constants
-    public static final String DIRECTORY_USERS = "directory.users";
     public static final String DIRECTORY_UPLOADS_USERS = "directory.uploads_users";
     public static final String ROLE_CUSTOMER = "role.customer";
     public static final String ROLE_SELLER = "role.seller";
@@ -140,6 +139,7 @@ public final class MessageKeys {
     public static final String EMAIL_ACCOUNT_DEACTIVATED_SUBJECT = "email.account_deactivated.subject";
     public static final String EMAIL_PRODUCT_ACTIVATED_SUBJECT = "email.product_activated.subject";
     public static final String EMAIL_PRODUCT_DEACTIVATED_SUBJECT = "email.product_deactivated.subject";
+    public static final String EMAIL_PRODUCT_CREATED_SUBJECT = "email.product_created.subject";
 
     public static final String EMAIL_ACTIVATION_BODY = "email.activation.body";
     public static final String EMAIL_SELLER_REGISTRATION_BODY = "email.seller_registration.body";
@@ -150,6 +150,7 @@ public final class MessageKeys {
     public static final String EMAIL_ACCOUNT_DEACTIVATED_BODY = "email.account_deactivated.body";
     public static final String EMAIL_PRODUCT_ACTIVATED_BODY = "email.product_activated.body";
     public static final String EMAIL_PRODUCT_DEACTIVATED_BODY = "email.product_deactivated.body";
+    public static final String EMAIL_PRODUCT_CREATED_BODY = "email.product_created.body";
     
     // JWT Token Messages
     public static final String JWT_TOKEN_INVALID = "jwt.token_invalid";
@@ -202,8 +203,6 @@ public final class MessageKeys {
     public static final String TABLE_CATEGORY_METADATA_FIELD_VALUES = "table.category_metadata_field_values";
     public static final String VALIDATION_ID_SUFFIX = "validation.id_suffix";
     public static final String IMAGE_PART_NAME = "image.part_name";
-    public static final String IMAGES_PATH_PREFIX = "images.path_prefix";
     public static final String RESOURCE_NOT_FOUND_MESSAGE = "resource.not_found_message";
-    public static final String PATH_SEPARATOR = "path.separator";
     
 }
