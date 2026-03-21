@@ -24,7 +24,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @Query("SELECT MAX(pv.price) FROM ProductVariations pv WHERE pv.product.category.id IN :categoryIds AND pv.isActive = true")
     Double findMaxPriceByCategoryIds(@Param("categoryIds") List<Long> categoryIds);
 
-    boolean existsByCategoryIdAndIsDeletedFalse(Long categoryId);
+    boolean existsByCategory_IdAndIsDeletedFalse(Long categoryId);
 
     boolean existsByNameAndBrandAndCategory_IdAndSeller_Id(
         String name, String brand, Long categoryId, Long sellerId

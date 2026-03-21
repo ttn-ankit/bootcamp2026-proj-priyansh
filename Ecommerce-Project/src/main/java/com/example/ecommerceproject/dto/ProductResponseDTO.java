@@ -16,12 +16,11 @@ import lombok.experimental.FieldDefaults;
 public class ProductResponseDTO {
     Long id;
     String name;
-    String description;
-    boolean active;
+    String desc;
+    boolean isActive;
     String brand;
-    boolean cancellable;
-    boolean returnable;
+    boolean isCancellable;
+    boolean isReturnable;
     CategoryResponseDTO category;
-    SellerResponseDTO seller;
     List<ProductVariationDTO> variations;
 }

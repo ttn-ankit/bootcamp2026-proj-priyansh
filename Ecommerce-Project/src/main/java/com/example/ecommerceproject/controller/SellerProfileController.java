@@ -11,12 +11,14 @@ import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/seller")
@@ -32,18 +34,14 @@ public class SellerProfileController {
     @Operation(summary = "View Seller Profile", description = "Retrieves the complete profile data of the currently logged-in seller.")
     @GetMapping("/{userId}/profile")
     public ResponseEntity<SellerProfileResponseDTO> getProfile(
-            @PathVariable 
-            @Positive(message = "{validation.invalid_id_format}")
-            Long userId) {
+            @PathVariable @Positive(message = "{validation.invalid_id_format}") Long userId) {
         return ResponseEntity.ok(sellerService.getProfile(userId));
     }
 
     @Operation(summary = "Update Seller Profile", description = "Updates basic profile information (first name, last name, company details) for the logged-in seller.")
     @PatchMapping("/{userId}/profile")
     public ResponseEntity<ApiResponseDTO> updateProfile(
-            @PathVariable 
-            @Positive(message = "{validation.invalid_id_format}")
-            Long userId,
+            @PathVariable @Positive(message = "{validation.invalid_id_format}") Long userId,
             @Valid @RequestBody SellerProfileUpdateRequestDTO dto) {
         return ResponseEntity.ok(sellerService.updateProfile(userId, dto));
     }
@@ -51,9 +49,7 @@ public class SellerProfileController {
     @Operation(summary = "Update Password", description = "Updates the password for the logged-in seller. Enforces password complexity rules.")
     @PatchMapping("/{userId}/password")
     public ResponseEntity<ApiResponseDTO> updatePassword(
-            @PathVariable 
-            @Positive(message = "{validation.invalid_id_format}")
-            Long userId,
+            @PathVariable @Positive(message = "{validation.invalid_id_format}") Long userId,
             @Valid @RequestBody PasswordUpdateRequestDTO dto) {
         return ResponseEntity.ok(sellerService.updatePassword(userId, dto));
     }
@@ -61,9 +57,7 @@ public class SellerProfileController {
     @Operation(summary = "Update Address", description = "Updates the seller's address (sellers can only have one address).")
     @PatchMapping("/{userId}/address")
     public ResponseEntity<ApiResponseDTO> updateAddress(
-            @PathVariable 
-            @Positive(message = "{validation.invalid_id_format}")
-            Long userId,
+            @PathVariable @Positive(message = "{validation.invalid_id_format}") Long userId,
             @Valid @RequestBody AddressPartialUpdateRequestDTO dto) {
         return ResponseEntity.ok(sellerService.updateAddress(userId, dto));
     }
@@ -80,22 +74,22 @@ public class SellerProfileController {
         return ResponseEntity.ok(sellerService.createProduct(request));
     }
 
-    @PostMapping("/{productId}/variations")
-    @Operation(summary = "Add a product variation", description = "Adds a variation (e.g., size/color) to an active product.")
+    @PostMapping(value = "/product/{productId}/variations", consumes = "multipart/form-data")
+    @Operation(summary = "Add a product variation with images", description = "Adds a variation with metadata, pricing, and images to an active product.")
     public ResponseEntity<ApiResponse> addProductVariation(
             @Parameter(description = "ID of the parent product") @PathVariable Long productId,
-            @Valid @RequestBody ProductVariationCreateRequest request) {
-        return ResponseEntity.ok(sellerService.createProductVariation(productId, request));
+            @Parameter(description = "Variation data as JSON string") @RequestParam("variation") String variationJson,
+            @Parameter(description = "Primary image file") @RequestParam("primaryImage") MultipartFile primaryImage,
+            @Parameter(description = "Secondary image files") @RequestParam(value = "secondaryImages", required = false) MultipartFile[] secondaryImages) {
+        return ResponseEntity.ok(sellerService.createProductVariation(productId, variationJson, primaryImage, secondaryImages));
     }
 
     @GetMapping("/products")
-    @Operation(summary = "View all products", description = "Retrieves paginated non-deleted products for the logged-in seller.")
-    public ResponseEntity<Page<ProductResponse>> viewAllProducts(
-            @RequestParam(defaultValue = "10") int max,
-            @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "id") String sort,
-            @RequestParam(defaultValue = "ASC") String order) {
-        return ResponseEntity.ok(sellerService.getAllProducts(offset, max, sort, order));
+    @Operation(summary = "List all products", description = "Retrieve a paginated list of all products with optional filters")
+    public ResponseEntity<Page<ProductResponseDTO>> getAllProducts(
+            @Parameter(description = "Map containing offset, max, sort, order, sellerId, or categoryId")
+            @RequestParam Map<String, String> params) {
+        return ResponseEntity.ok(sellerService.getAllProducts(params));
     }
 
     @GetMapping("/{productId}/variations")
@@ -123,12 +117,14 @@ public class SellerProfileController {
         return ResponseEntity.ok(sellerService.updateProduct(productId, request));
     }
 
-    @PutMapping("/product/{productId}/variations/{variationId}")
-    @Operation(summary = "Update a variation", description = "Updates details of a specific product variation.")
+    @PutMapping(value = "/product/{productId}/variations/{variationId}", consumes = "multipart/form-data")
+    @Operation(summary = "Update a variation with images", description = "Updates variation details and images.")
     public ResponseEntity<ApiResponse> updateProductVariation(
             @PathVariable Long productId,
             @PathVariable Long variationId,
-            @Valid @RequestBody ProductVariationUpdateRequest request) {
-        return ResponseEntity.ok(sellerService.updateProductVariation(productId, variationId, request));
+            @Parameter(description = "Variation data as JSON string") @RequestParam("variation") String variationJson,
+            @Parameter(description = "Primary image file") @RequestParam(value = "primaryImage", required = false) MultipartFile primaryImage,
+            @Parameter(description = "Secondary image files") @RequestParam(value = "secondaryImages", required = false) MultipartFile[] secondaryImages) {
+        return ResponseEntity.ok(sellerService.updateProductVariation(productId, variationId, variationJson, primaryImage, secondaryImages));
     }
 }

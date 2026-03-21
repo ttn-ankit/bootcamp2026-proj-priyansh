@@ -31,7 +31,7 @@ public class ProductVariations {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "json")
-    private Map<String, Object> metadata;
+    private Map<String, String> metadata;
 
     @Column(name = "primary_image_name")
     private String primaryImageName;

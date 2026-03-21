@@ -2,6 +2,8 @@ package com.example.ecommerceproject.repository;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -19,4 +21,5 @@ public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSp
     List<Category> findByParentCategoryId(Long parentId);
     @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM Category c WHERE c.id = :id AND c.subCategories IS EMPTY")
     boolean isLeafNode(@Param("id") Long id);
+    Page<Category> findAllByNameContainingIgnoreCase(String name, Pageable pageable);
 }

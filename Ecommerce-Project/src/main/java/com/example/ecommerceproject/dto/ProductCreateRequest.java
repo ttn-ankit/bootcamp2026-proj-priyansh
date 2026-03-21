@@ -20,10 +20,10 @@ public class ProductCreateRequest {
     @NotBlank(message = "{validation.brand_required}")
     String brand;
 
-    @NotNull(message = "{validation.category_id_required}")
+    @NotNull(message = "{category.category_id_required}")
     Long categoryId;
 
-    String description;
+    String desc;
     Boolean isCancellable = false;
     Boolean isReturnable = false;
 }

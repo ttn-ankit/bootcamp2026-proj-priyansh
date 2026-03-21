@@ -24,7 +24,7 @@ public class Product {
     @Column(nullable = false, length = 50)
     String name;
 
-    @Column(name = "description", nullable = false, length = 100)
+    @Column(name = "description", length = 100)
     String desc;
 
     @Column(name = "is_cancellable")

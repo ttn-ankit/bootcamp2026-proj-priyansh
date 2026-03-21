@@ -18,4 +18,9 @@ public class CategoryResponseDTO {
     Long id;
     String name;
     Long parentCategoryId;
+
+    public CategoryResponseDTO(Long id, String name){
+        this.id = id;
+        this.name = name;
+    }
 }

@@ -5,10 +5,13 @@ import com.example.ecommerceproject.repository.ProductVariationRepository;
 
 import static lombok.AccessLevel.PRIVATE;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -21,11 +24,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.example.ecommerceproject.dto.AddressPartialUpdateRequestDTO;
 import com.example.ecommerceproject.dto.ApiResponse;
@@ -33,7 +40,7 @@ import com.example.ecommerceproject.dto.ApiResponseDTO;
 import com.example.ecommerceproject.dto.CategoryMetadataDTO;
 import com.example.ecommerceproject.dto.PasswordUpdateRequestDTO;
 import com.example.ecommerceproject.dto.ProductCreateRequest;
-import com.example.ecommerceproject.dto.ProductResponse;
+import com.example.ecommerceproject.dto.ProductResponseDTO;
 import com.example.ecommerceproject.dto.ProductUpdateRequest;
 import com.example.ecommerceproject.dto.ProductVariationCreateRequest;
 import com.example.ecommerceproject.dto.ProductVariationResponse;
@@ -57,6 +64,7 @@ import com.example.ecommerceproject.service.EmailService;
 import com.example.ecommerceproject.service.MessageService;
 import com.example.ecommerceproject.service.SellerService;
 import com.example.ecommerceproject.service.UserSessionService;
+import com.example.ecommerceproject.specs.ProductSpecifications;
 import com.example.ecommerceproject.util.MessageKeys;
 import com.example.ecommerceproject.enums.AddressType;
 
@@ -81,6 +89,7 @@ public class SellerServiceImpl implements SellerService {
     final MessageService messageService;
     final UserSessionService userSessionService;
     final ModelMapper modelMapper;
+    final ObjectMapper objectMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -160,16 +169,17 @@ public class SellerServiceImpl implements SellerService {
         return leafNodes.stream().map(this::mapToSellerCategoryDTO).collect(Collectors.toList());
     }
 
-@Override
+    @Override
     @Transactional
     public ApiResponse createProduct(ProductCreateRequest dto) {
         Seller seller = getActiveSellerByUserId(getCurrentUserId());
         Long sellerId = seller.getId();
 
-        if(!categoryRepository.isLeafNode(dto.getCategoryId())){
+        if (!categoryRepository.isLeafNode(dto.getCategoryId())) {
             throw new ApiException(messageService.get(MessageKeys.CATEGORY_MUST_BE_VALID_LEAF), 400);
         }
-        if(productRepository.existsByNameAndBrandAndCategory_IdAndSeller_Id(dto.getName(), dto.getBrand(), dto.getCategoryId(), sellerId)){
+        if (productRepository.existsByNameAndBrandAndCategory_IdAndSeller_Id(dto.getName(), dto.getBrand(),
+                dto.getCategoryId(), sellerId)) {
             throw new ApiException(messageService.get(MessageKeys.PRODUCT_MUST_BE_UNIQUE_FOR_BRAND_AND_CATEGORY), 400);
         }
 
@@ -185,55 +195,87 @@ public class SellerServiceImpl implements SellerService {
             String sellerName = seller.getUser().getFirstName() + " " + seller.getUser().getLastName();
             String sellerEmail = seller.getUser().getEmail();
             emailService.sendProductCreatedNotificationToAdmin(
-                sellerName,
-                sellerEmail,
-                product.getName(),
-                category.getName(),
-                product.getBrand()
-            );
+                    sellerName,
+                    sellerEmail,
+                    product.getName(),
+                    category.getName(),
+                    product.getBrand());
         } catch (Exception e) {
             log.warn("Failed to send product creation notification email for product: {}", product.getName(), e);
         }
 
-        return new ApiResponse(messageService.get(MessageKeys.PRODUCT_ADDED_SUCCESSFULLY));
+        return new ApiResponse(messageService.get(MessageKeys.PRODUCT_ADDED_SUCCESSFULLY), product.getId());
     }
 
     @Override
     @Transactional
-    public ApiResponse createProductVariation(Long productId, ProductVariationCreateRequest dto) {
-        Seller seller = getActiveSellerByUserId(getCurrentUserId());
+    public ApiResponse createProductVariation(Long productId, String variationJson, MultipartFile primaryImage,
+            MultipartFile[] secondaryImages) {
+        try {
+            // Parse JSON to DTO
+            ProductVariationCreateRequest dto = objectMapper.readValue(variationJson,
+                    ProductVariationCreateRequest.class);
 
-        Product product = productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId()).orElseThrow(
-            () -> new ApiException(messageService.get(MessageKeys.PRODUCT_NOT_FOUND), 400)
-        );
+            Seller seller = getActiveSellerByUserId(getCurrentUserId());
+            Product product = productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId())
+                    .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.PRODUCT_NOT_FOUND), 400));
 
-        if(!product.getIsActive()){
-            throw new ApiException(messageService.get(MessageKeys.PRODUCT_MUST_BE_ACTIVE_TO_ADD_VARIATION), 400);
+            if (!product.getIsActive()) {
+                throw new ApiException(messageService.get(MessageKeys.PRODUCT_MUST_BE_ACTIVE_TO_ADD_VARIATION), 400);
+            }
+
+            // Validate metadata
+            validateVariationMetadata(product.getCategory().getId(), productId, dto.getMetadata());
+            validateNoDuplicateVariation(productId, dto.getMetadata());
+
+            // Get next variation number for naming
+            int nextVariationNumber = getNextVariationNumber(productId);
+
+            // Validate and save images
+            String primaryImageName = null;
+            if (primaryImage != null && !primaryImage.isEmpty()) {
+                primaryImageName = saveProductImage(productId, nextVariationNumber, primaryImage, true);
+            }
+
+            if (secondaryImages != null && secondaryImages.length > 0) {
+                saveProductSecondaryImages(productId, nextVariationNumber, secondaryImages);
+            }
+
+            ProductVariations variations = modelMapper.map(dto, ProductVariations.class);
+            variations.setProduct(product);
+            variations.setIsActive(true);
+            variations.setPrimaryImageName(primaryImageName);
+            variationRepository.save(variations);
+
+            return new ApiResponse(messageService.get(MessageKeys.PRODUCT_VARIATION_CREATED_SUCCESSFULLY),
+                    variations.getId());
+
+        } catch (Exception e) {
+            throw new ApiException(messageService.get(MessageKeys.VALIDATION_FAILED), 400);
         }
-        validateImageNaming(productId, dto.getPrimaryImageUrl(), dto.getSecondaryImageUrls());
-        validateVariationMetadata(product.getCategory().getId(), productId, dto.getMetadata());
+    }
 
-        ProductVariations variations = modelMapper.map(dto, ProductVariations.class);
-        variations.setProduct(product);
-        variations.setIsActive(true);
-        variationRepository.save(variations);
-
-        return new ApiResponse(messageService.get(MessageKeys.PRODUCT_VARIATION_CREATED_SUCCESSFULLY));
-    }   
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ProductResponse> getAllProducts(int offset, int max, String sort, String order) {
+    public Page<ProductResponseDTO> getAllProducts(Map<String, String> params) {
         Seller seller = getActiveSellerByUserId(getCurrentUserId());
+        int page = Integer.parseInt(params.getOrDefault("offset", "0"));
+        int size = Integer.parseInt(params.getOrDefault("max", "10"));
+        String sortBy = params.getOrDefault("sort", "id");
+        Sort.Direction direction = Sort.Direction.fromString(params.getOrDefault("order", "ASC"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Specification<Product> spec = ProductSpecifications.buildFilter(params);
+        params.put("sellerId", seller.getId().toString());
 
-        Pageable pageable = PageRequest.of(offset, max, Sort.Direction.fromString(order.toUpperCase()), sort);
-        return productRepository.findAllBySeller_IdAndIsDeletedFalse(seller.getId(), pageable)
-                .map(product -> modelMapper.map(product, ProductResponse.class));
+        return productRepository.findAll(spec, pageable)
+                .map(product -> {
+                    ProductResponseDTO response = modelMapper.map(product, ProductResponseDTO.class);
+                    return response;
+                });
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ProductVariationResponse> getProductVariations(Long productId, int offset, int max, String sort, String order) {
+    public Page<ProductVariationResponse> getProductVariations(Long productId, int offset, int max, String sort,
+            String order) {
         Seller seller = getActiveSellerByUserId(getCurrentUserId());
 
         productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId())
@@ -249,9 +291,9 @@ public class SellerServiceImpl implements SellerService {
     public ApiResponse deleteProduct(Long productId) {
         Seller seller = getActiveSellerByUserId(getCurrentUserId());
 
-        Product product = productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId()).orElseThrow(
-            () -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400)
-        );
+        Product product = productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId())
+                .orElseThrow(
+                        () -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400));
         productRepository.delete(product);
         return new ApiResponse(messageService.get(MessageKeys.PRODUCT_DELETED_SUCCESSFULLY));
     }
@@ -266,56 +308,66 @@ public class SellerServiceImpl implements SellerService {
                 .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400));
 
         if (dto.getName() != null && !dto.getName().equals(existingProduct.getName())) {
-             if (productRepository.existsByNameAndBrandAndCategory_IdAndSeller_Id(
+            if (productRepository.existsByNameAndBrandAndCategory_IdAndSeller_Id(
                     dto.getName(), existingProduct.getBrand(), existingProduct.getCategory().getId(), sellerId)) {
                 throw new ApiException(messageService.get(MessageKeys.PRODUCT_NAME_EXISTS), 400);
             }
         }
 
         modelMapper.map(dto, existingProduct);
-        return new ApiResponse(messageService.get(MessageKeys.PRODUCT_UPDATED_SUCCESSFULLY));
+        return new ApiResponse(messageService.get(MessageKeys.PRODUCT_UPDATED_SUCCESSFULLY), existingProduct.getId());
     }
 
     @Override
     @Transactional
-    public ApiResponse updateProductVariation(Long productId, Long variationId, ProductVariationUpdateRequest dto) {
-        Seller seller = getActiveSellerByUserId(getCurrentUserId());
+    public ApiResponse updateProductVariation(Long productId, Long variationId, String variationJson,
+            MultipartFile primaryImage, MultipartFile[] secondaryImages) {
+        try {
+            ProductVariationUpdateRequest dto = objectMapper.readValue(variationJson,
+                    ProductVariationUpdateRequest.class);
 
-        Product product = productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId())
-                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400));
-        
-        if (!product.getIsActive()) {
-            throw new ApiException(messageService.get(MessageKeys.PRODUCT_MUST_BE_ACTIVE), 400);
-        }
+            Seller seller = getActiveSellerByUserId(getCurrentUserId());
+            Product product = productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId())
+                    .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.PRODUCT_NOT_FOUND), 400));
 
-        ProductVariations existingVariation = variationRepository.findByIdAndProductId(variationId, productId)
-                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400));
-
-        validateImageNaming(productId, dto.getPrimaryImageUrl(), dto.getSecondaryImageUrls());
-        if (dto.getMetadata() != null) {
-            validateVariationMetadata(product.getCategory().getId(), productId, dto.getMetadata());
-        }
-
-        modelMapper.map(dto, existingVariation);
-        return new ApiResponse(messageService.get(MessageKeys.PRODUCT_VARIATION_UPDATED_SUCCESSFULLY));
-    }
-
-    private void validateImageNaming(Long productId, String primaryImage, List<String> secondaryImages) {
-        if (primaryImage != null) {
-            String expectedPrimaryPattern = "(?i).*\\b" + productId + "\\.(jpg|png)$";
-            if (!primaryImage.matches(expectedPrimaryPattern)) {
-                throw new ApiException(
-                        messageService.get(MessageKeys.PRODUCT_PRIMARY_IMAGE_FORMAT, new Object[] { productId }), 400);
+            if (!product.getIsActive()) {
+                throw new ApiException(messageService.get(MessageKeys.PRODUCT_MUST_BE_ACTIVE), 400);
             }
-        }
 
-        if (secondaryImages != null && !secondaryImages.isEmpty()) {
-            String expectedSecondaryPattern = "(?i).*\\bimage_\\d+\\.(jpg|png)$";
-            for (String secImage : secondaryImages) {
-                if (!secImage.matches(expectedSecondaryPattern)) {
-                    throw new ApiException(messageService.get(MessageKeys.PRODUCT_SECONDARY_IMAGE_FORMAT), 400);
-                }
+            ProductVariations existingVariation = variationRepository.findByIdAndProductId(variationId, productId)
+                    .orElseThrow(
+                            () -> new ApiException(messageService.get(MessageKeys.PRODUCT_VARIATION_NOT_FOUND), 400));
+
+            if (dto.getQuantityAvailable() != null) {
+                existingVariation.setQuantityAvailable(dto.getQuantityAvailable());
             }
+            if (dto.getPrice() != null) {
+                existingVariation.setPrice(dto.getPrice());
+            }
+            if (dto.getIsActive() != null) {
+                existingVariation.setIsActive(dto.getIsActive());
+            }
+            if (dto.getMetadata() != null) {
+                validateVariationMetadata(product.getCategory().getId(), productId, dto.getMetadata());
+                existingVariation.setMetadata(dto.getMetadata());
+            }
+
+            int variationNumber = getVariationNumber(variationId);
+
+            if (primaryImage != null && !primaryImage.isEmpty()) {
+                String primaryImageName = saveProductImage(productId, variationNumber, primaryImage, true);
+                existingVariation.setPrimaryImageName(primaryImageName);
+            }
+
+            if (secondaryImages != null && secondaryImages.length > 0) {
+                saveProductSecondaryImages(productId, variationNumber, secondaryImages);
+            }
+
+            variationRepository.save(existingVariation);
+            return new ApiResponse(messageService.get(MessageKeys.PRODUCT_VARIATION_UPDATED_SUCCESSFULLY), variationId);
+
+        } catch (Exception e) {
+            throw new ApiException(messageService.get(MessageKeys.VALIDATION_FAILED), 400);
         }
     }
 
@@ -329,33 +381,44 @@ public class SellerServiceImpl implements SellerService {
         if (allowedFieldsFromDb.isEmpty()) {
             throw new ApiException(messageService.get(MessageKeys.PRODUCT_NO_METADATA_FIELDS), 400);
         }
-
         Map<String, List<String>> allowedMetadataMap = new HashMap<>();
         for (CategoryMetadataFieldValues cmfv : allowedFieldsFromDb) {
-            String key = cmfv.getMetadataField().getName().toLowerCase();
-            List<String> values = Arrays.stream(cmfv.getValue().split(","))
-                    .map(String::trim)
-                    .map(String::toLowerCase)
-                    .collect(Collectors.toList());
-            allowedMetadataMap.put(key, values);
+            String fieldName = cmfv.getMetadataField().getName().toLowerCase();
+            String value = cmfv.getValue().trim().toLowerCase();
+            allowedMetadataMap.computeIfAbsent(fieldName, k -> new ArrayList<>()).add(value);
         }
-
+        List<String> invalidFields = new ArrayList<>();
+        List<String> invalidValues = new ArrayList<>();
         for (Map.Entry<String, String> entry : incomingMetadata.entrySet()) {
             String inputKey = entry.getKey().trim().toLowerCase();
             String inputValue = entry.getValue().trim().toLowerCase();
 
             if (!allowedMetadataMap.containsKey(inputKey)) {
-                throw new ApiException(
-                        messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_FIELD, new Object[] { inputKey }), 400);
-            }
+                invalidFields.add(entry.getKey());
+            } else {
+                List<String> allowedValues = allowedMetadataMap.get(inputKey);
+                if (!allowedValues.contains(inputValue)) {
+                    List<String> originalCaseValues = metadataFieldRepository.findAllByCategory_Id(categoryId)
+                            .stream()
+                            .filter(cmfv -> cmfv.getMetadataField().getName().equalsIgnoreCase(entry.getKey()))
+                            .map(cmfv -> cmfv.getValue())
+                            .collect(Collectors.toList());
 
-            List<String> allowedValues = allowedMetadataMap.get(inputKey);
-            if (!allowedValues.contains(inputValue)) {
-                throw new ApiException(messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_VALUE,
-                        new Object[] { entry.getValue(), allowedValues }), 400);
+                    invalidValues
+                            .add(entry.getKey() + ": " + entry.getValue() + " (allowed: " + originalCaseValues + ")");
+                }
             }
         }
-
+        if (!invalidFields.isEmpty()) {
+            throw new ApiException(
+                    messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_FIELDS, new Object[] { invalidFields }),
+                    400);
+        }
+        if (!invalidValues.isEmpty()) {
+            throw new ApiException(
+                    messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_VALUES, new Object[] { invalidValues }),
+                    400);
+        }
         Page<ProductVariations> existingVariations = variationRepository.findAllByProductId(productId,
                 PageRequest.of(0, 1));
         if (existingVariations.hasContent()) {
@@ -366,6 +429,17 @@ public class SellerServiceImpl implements SellerService {
                 throw new ApiException(
                         messageService.get(MessageKeys.PRODUCT_VARIATION_KEYS_MISMATCH, new Object[] { existingKeys }),
                         400);
+            }
+        }
+    }
+
+    private void validateNoDuplicateVariation(Long productId, Map<String, String> newMetadata) {
+        List<ProductVariations> existingVariations = variationRepository
+                .findAllByProduct_IdAndProduct_IsActiveTrueAndProduct_IsDeletedFalse(productId);
+
+        for (ProductVariations existing : existingVariations) {
+            if (existing.getMetadata().equals(newMetadata)) {
+                throw new ApiException(messageService.get(MessageKeys.PRODUCT_VARIATION_ALREADY_EXISTS), 400);
             }
         }
     }
@@ -424,11 +498,12 @@ public class SellerServiceImpl implements SellerService {
             if (!Files.exists(userDir)) {
                 return null;
             }
-            
+
             Long[] idsToTry = { userId, seller != null ? seller.getId() : null };
 
             for (Long id : idsToTry) {
-                if (id == null) continue;
+                if (id == null)
+                    continue;
 
                 String imageUrl = findImageForId(id);
                 if (imageUrl != null) {
@@ -500,4 +575,67 @@ public class SellerServiceImpl implements SellerService {
             throw new ApiException(messageService.get(MessageKeys.ERROR_ACCESS_DENIED), 403);
         }
     }
+
+    private int getNextVariationNumber(Long productId) {
+        long count = variationRepository.countByProduct_IdAndProduct_IsDeletedFalse(productId);
+        return (int) count + 1;
+    }
+
+    private int getVariationNumber(Long variationId) {
+        return variationId.intValue();
+    }
+
+    private String saveProductImage(Long productId, int variationNumber, MultipartFile file, boolean isPrimary) {
+        try {
+            if (file.isEmpty()) {
+                throw new ApiException(messageService.get(MessageKeys.IMAGE_FILE_REQUIRED), 400);
+            }
+
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || !originalFilename.matches("(?i).*\\.(jpg|jpeg|png)$")) {
+                throw new ApiException(messageService.get(MessageKeys.IMAGE_INVALID_FORMAT), 400);
+            }
+
+            String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            String filename = productId + "v" + variationNumber + extension;
+
+            Path uploadDir = Paths.get("uploads/products/" + productId);
+            Files.createDirectories(uploadDir);
+
+            Path filePath = uploadDir.resolve(filename);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            return filename;
+
+        } catch (IOException e) {
+            throw new ApiException(messageService.get(MessageKeys.IMAGE_UPLOAD_FAILED), 500);
+        }
+    }
+
+    private void saveProductSecondaryImages(Long productId, int variationNumber, MultipartFile[] files) {
+        for (int i = 0; i < files.length; i++) {
+            MultipartFile file = files[i];
+            if (!file.isEmpty()) {
+                try {
+                    String originalFilename = file.getOriginalFilename();
+                    if (originalFilename == null || !originalFilename.matches("(?i).*\\.(jpg|jpeg|png)$")) {
+                        continue;
+                    }
+
+                    String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+                    String filename = productId + "v" + variationNumber + "_" + (i + 1) + extension;
+
+                    Path uploadDir = Paths.get("uploads/products/" + productId);
+                    Files.createDirectories(uploadDir);
+
+                    Path filePath = uploadDir.resolve(filename);
+                    Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+                } catch (IOException e) {
+                    log.warn("Failed to save secondary image {}: {}", i, e.getMessage());
+                }
+            }
+        }
+    }
+
 }

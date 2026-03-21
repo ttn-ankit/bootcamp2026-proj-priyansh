@@ -112,6 +112,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
+    @Async
     public void sendProductStatusEmail(String sellerEmail, String productName, boolean isActivated) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(sellerEmail);
@@ -128,6 +129,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
+    @Async
     public void sendProductCreatedNotificationToAdmin(String sellerName, String sellerEmail, String productName, String categoryName, String brand) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(MessageKeys.PROTECTED_ADMIN_EMAIL);

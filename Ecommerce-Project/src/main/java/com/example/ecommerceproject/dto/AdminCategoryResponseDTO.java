@@ -2,6 +2,8 @@ package com.example.ecommerceproject.dto;
 
 import static lombok.AccessLevel.PRIVATE;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;
@@ -14,10 +16,12 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@FieldDefaults(level = PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CategoryMetadataDTO {
-    Long metadataFieldId;
-    String fieldName;
-    String possibleValues;
+@FieldDefaults(level = PRIVATE)
+public class AdminCategoryResponseDTO {
+    Long id;
+    String name;
+    List<CategoryResponseDTO> parentChain;
+    List<CategoryResponseDTO> childCategories;
+    List<CategoryMetadataDTO> metadataFields;
 }

@@ -17,10 +17,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.ecommerceproject.dto.AdminCategoryResponseDTO;
 import com.example.ecommerceproject.dto.ApiResponse;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
 import com.example.ecommerceproject.dto.CategoryMetadataValueRequestDTO;
-import com.example.ecommerceproject.dto.CategoryResponseDTO;
 import com.example.ecommerceproject.dto.CustomerResponseDTO;
 import com.example.ecommerceproject.dto.MetadataFieldResponseDTO;
 import com.example.ecommerceproject.dto.ProductResponseDTO;
@@ -151,8 +151,6 @@ public class AdminController {
     public ResponseEntity<ApiResponse> addCategory(
             @Parameter(description = "Name of the category", required = true) 
             @RequestParam 
-            @NotBlank(message = "{category.name_required}")
-            @Size(max = 40, message = "{category.name_invalid}")
             @Pattern(regexp = "^[a-zA-Z0-9\\s\\-_]+$", message = "{category.name_invalid}")
             String categoryName,
             @Parameter(description = "Optional ID of the parent category") @RequestParam(required = false) Long parentId) {
@@ -161,7 +159,7 @@ public class AdminController {
 
     @Operation(summary = "View all categories", description = "Fetches a paginated list of categories. Can be filtered by parent Category ID or name query.")
     @GetMapping("/category/all")
-    public ResponseEntity<Page<CategoryResponseDTO>> viewAllCategories(
+    public ResponseEntity<Page<AdminCategoryResponseDTO>> viewAllCategories(
             @Parameter(description = "Maximum number of records to return") 
             @RequestParam(defaultValue = "10") 
             int max,

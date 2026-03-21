@@ -1,6 +1,9 @@
 package com.example.ecommerceproject.service.impl;
 
 import static lombok.AccessLevel.PRIVATE;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,8 +19,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.ecommerceproject.dto.AdminCategoryResponseDTO;
 import com.example.ecommerceproject.dto.ApiResponse;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
+import com.example.ecommerceproject.dto.CategoryMetadataDTO;
 import com.example.ecommerceproject.dto.CategoryMetadataValueRequestDTO;
 import com.example.ecommerceproject.dto.CategoryResponseDTO;
 import com.example.ecommerceproject.dto.CustomerResponseDTO;
@@ -116,12 +121,12 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public ApiResponseDTO activateUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 404));
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_FOUND), 404));
 
         validateUserNotDeleted(user);
 
         if (user.isActive()) {
-            throw new ApiException(MessageKeys.VALIDATION_USER_ALREADY_ACTIVATED, 400);
+            throw new ApiException(messageService.get(MessageKeys.VALIDATION_USER_ALREADY_ACTIVATED), 400);
         }
 
         user.setActive(true);
@@ -134,13 +139,13 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public ApiResponseDTO deactivateUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 404));
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_FOUND), 404));
 
         validateUserNotDeleted(user);
         validateNotProtectedAdmin(user);
 
         if (!user.isActive()) {
-            throw new ApiException(MessageKeys.VALIDATION_USER_ALREADY_DEACTIVATED, 400);
+            throw new ApiException(messageService.get(MessageKeys.VALIDATION_USER_ALREADY_DEACTIVATED), 400);
         }
 
         user.setActive(false);
@@ -156,15 +161,19 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public ApiResponse addMetadataField(String fieldName) {
         if (fieldName == null || fieldName.trim().isEmpty()) {
-            throw new ApiException(MessageKeys.METADATA_FIELD_NAME_REQUIRED, 400);
+            throw new ApiException(messageService.get(MessageKeys.METADATA_FIELD_NAME_REQUIRED), 400);
         }
         String trimmedFieldName = fieldName.trim();
 
         if (trimmedFieldName.length() > 40) {
-            throw new ApiException(MessageKeys.METADATA_FIELD_NAME_INVALID, 400);
+            throw new ApiException(messageService.get(MessageKeys.METADATA_FIELD_NAME_INVALID), 400);
         }
         if (metadataFieldRepository.existsByNameIgnoreCase(trimmedFieldName)) {
-            throw new ApiException(MessageKeys.METADATA_FIELD_VALUE_MUST_BE_UNIQUE, 400);
+            throw new ApiException(messageService.get(MessageKeys.METADATA_FIELD_VALUE_MUST_BE_UNIQUE), 400);
+        }
+
+        if (containsNumbers(fieldName)) {
+            throw new ApiException(messageService.get(MessageKeys.METADATA_FIELD_NAME_NO_NUMBERS), 400);
         }
 
         CategoryMetadataField field = new CategoryMetadataField();
@@ -190,28 +199,29 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public ApiResponse addCategory(String categoryName, Long parentId) {
         if (categoryName == null || categoryName.trim().isEmpty()) {
-            throw new ApiException(MessageKeys.CATEGORY_NAME_REQUIRED, 400);
+            throw new ApiException(messageService.get(MessageKeys.CATEGORY_NAME_REQUIRED), 400);
         }
         String trimmedCategoryName = categoryName.trim();
 
         if (trimmedCategoryName.length() > 40) {
-            throw new ApiException(MessageKeys.CATEGORY_NAME_INVALID, 400);
+            throw new ApiException(messageService.get(MessageKeys.CATEGORY_NAME_INVALID), 400);
         }
-        if (categoryRepository.existsByNameIgnoreCase(categoryName)) {
-            throw new ApiException(messageService.get(MessageKeys.CATEGORY_NAME_MUST_BE_UNIQUE_WITHIN_PARENT), 400);
+
+        if (categoryRepository.existsByNameIgnoreCase(trimmedCategoryName)) {
+            throw new ApiException(messageService.get(MessageKeys.CATEGORY_NAME_MUST_BE_UNIQUE), 400);
         }
 
         Category parent = null;
         if (parentId != null) {
             parent = categoryRepository.findById(parentId).orElseThrow(
-                    () -> new ApiException(MessageKeys.INVALID_PARENT_CATEGORY_ID, 400));
-            if (productRepository.existsByCategoryIdAndIsDeletedFalse(parentId)) {
+                    () -> new ApiException(messageService.get(MessageKeys.INVALID_PARENT_CATEGORY_ID), 400));
+            if (productRepository.existsByCategory_IdAndIsDeletedFalse(parentId)) {
                 throw new ApiException(messageService.get(MessageKeys.PARENT_CANNOT_ASSOCIATE_WITH_EXISTING_PRODUCT),
                         400);
             }
 
             if (trimmedCategoryName.equalsIgnoreCase(parent.getName())) {
-                throw new ApiException(MessageKeys.CATEGORY_NAME_CANNOT_MATCH_PARENT, 400);
+                throw new ApiException(messageService.get(MessageKeys.CATEGORY_NAME_CANNOT_MATCH_PARENT), 400);
             }
         }
         Category category = new Category();
@@ -222,21 +232,59 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public Page<CategoryResponseDTO> getAllCategories(String query, Long categoryId, int max, int offset, String sort,
-            String order) {
-        Pageable pageable = createPageable(max, offset, sort, order);
-        Specification<Category> spec = Specification.where(CategorySpecification.categoryNameContains(query))
-                .and(CategorySpecification.categoryHasParentId(categoryId));
+    @Transactional(readOnly = true)
+    public Page<AdminCategoryResponseDTO> getAllCategories(String query, Long categoryId, int max, int offset,
+            String sort, String order) {
 
+        Pageable pageable = createPageable(max, offset, sort, order);
+        Specification<Category> spec = Specification.where(CategorySpecification.categoryNameContains(query));
+
+        if (categoryId != null) {
+            categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.INVALID_CATEGORY_ID), 400));
+
+            spec = spec.and(CategorySpecification.categoryHasParentId(categoryId));
+        }
         return categoryRepository.findAll(spec, pageable)
-                .map(field -> {
-                    CategoryResponseDTO dto = new CategoryResponseDTO();
-                    dto.setId(field.getId());
-                    dto.setName(field.getName());
-                    dto.setParentCategoryId(
-                            field.getParentCategory() != null ? field.getParentCategory().getId() : null);
-                    return dto;
-                });
+                .map(this::mapToAdminCategoryResponse);
+    }
+
+    private AdminCategoryResponseDTO mapToAdminCategoryResponse(Category category) {
+        AdminCategoryResponseDTO dto = new AdminCategoryResponseDTO();
+        dto.setId(category.getId());
+        dto.setName(category.getName());
+
+        List<CategoryResponseDTO> parentChain = new ArrayList<>();
+        Category currentParent = category.getParentCategory();
+
+        while (currentParent != null) {
+            parentChain.add(new CategoryResponseDTO(currentParent.getId(), currentParent.getName()));
+            currentParent = currentParent.getParentCategory();
+        }
+
+        Collections.reverse(parentChain);
+        dto.setParentChain(parentChain);
+
+        List<CategoryResponseDTO> childCategories = new ArrayList<>();
+        if (category.getSubCategories() != null && !category.getSubCategories().isEmpty()) {
+            for (Category child : category.getSubCategories()) {
+                childCategories.add(new CategoryResponseDTO(child.getId(), child.getName()));
+            }
+        }
+        dto.setChildCategories(childCategories);
+
+        List<CategoryMetadataDTO> metadataFields = new ArrayList<>();
+        if (category.getFieldValues() != null && !category.getFieldValues().isEmpty()) {
+            for (CategoryMetadataFieldValues fv : category.getFieldValues()) {
+                metadataFields.add(new CategoryMetadataDTO(
+                        fv.getMetadataField().getId(),
+                        fv.getMetadataField().getName(),
+                        fv.getValue()));
+            }
+        }
+        dto.setMetadataFields(metadataFields);
+
+        return dto;
     }
 
     @Override
@@ -275,33 +323,40 @@ public class AdminServiceImpl implements AdminService {
     public ApiResponse addCategoryMetadataFieldValues(Long categoryId,
             List<CategoryMetadataValueRequestDTO> fieldValues) {
         Category category = categoryRepository.findById(categoryId).orElseThrow(
-                () -> new ApiException(MessageKeys.INVALID_CATEGORY_ID, 400));
+                () -> new ApiException(messageService.get(MessageKeys.INVALID_CATEGORY_ID), 400));
+        if (!categoryRepository.isLeafNode(categoryId)) {
+            throw new ApiException(messageService.get(MessageKeys.PARENT_CATEGORY_CANNOT_HAVE_METADATA), 400);
+        }
+
         for (CategoryMetadataValueRequestDTO dto : fieldValues) {
             if (dto.getMetaDataFieldId() == null) {
-                throw new ApiException(MessageKeys.INVALID_METADATA_FIELD_ID, 400);
+                throw new ApiException(messageService.get(MessageKeys.INVALID_METADATA_FIELD_ID), 400);
             }
-            if (dto.getValue() == null || dto.getValue().trim().isEmpty()) {
-                throw new ApiException(MessageKeys.METADATA_FIELD_VALUE_REQUIRED, 400);
+            if (dto.getValues() == null || dto.getValues().isEmpty()) {
+                throw new ApiException(messageService.get(MessageKeys.METADATA_FIELD_VALUE_REQUIRED), 400);
             }
 
             CategoryMetadataField metadataField = metadataFieldRepository.findById(dto.getMetaDataFieldId())
-                    .orElseThrow(() -> new ApiException(MessageKeys.INVALID_METADATA_FIELD_ID, 400));
+                    .orElseThrow(
+                            () -> new ApiException(messageService.get(MessageKeys.INVALID_METADATA_FIELD_ID), 400));
 
-            String trimmedValue = dto.getValue().trim();
+            for (String value : dto.getValues()) {
+                if (value == null || value.trim().isEmpty()) {
+                    continue;
+                }
 
-            if (metadataFieldValuesRepository.existsByCategoryIdAndMetadataFieldIdAndValue(
-                    categoryId, dto.getMetaDataFieldId(), trimmedValue)) {
-                throw new ApiException(MessageKeys.METADATA_FIELD_VALUE_DUPLICATE, 400);
-            }
-            CategoryMetadataFieldValues values = new CategoryMetadataFieldValues();
-            values.setCategory(category);
-            values.setMetadataField(metadataField);
-            values.setValue(trimmedValue);
+                String trimmedValue = value.trim();
 
-            try {
+                if (metadataFieldValuesRepository.existsByCategoryIdAndMetadataFieldIdAndValue(
+                        categoryId, dto.getMetaDataFieldId(), trimmedValue)) {
+                    throw new ApiException(messageService.get(MessageKeys.METADATA_FIELD_VALUE_DUPLICATE), 400);
+                }
+
+                CategoryMetadataFieldValues values = new CategoryMetadataFieldValues();
+                values.setCategory(category);
+                values.setMetadataField(metadataField);
+                values.setValue(trimmedValue);
                 metadataFieldValuesRepository.save(values);
-            } catch (org.springframework.dao.DataIntegrityViolationException e) {
-                throw new ApiException(MessageKeys.METADATA_FIELD_VALUE_DUPLICATE, 400);
             }
         }
         return new ApiResponse(messageService.get(MessageKeys.METADATA_FIELDS_ADDED_TO_CATEGORY_SUCCESSFULLY));
@@ -321,23 +376,24 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional
     public ApiResponse toggleProductStatus(Long productId, boolean activate) {
         Product product = productRepository.findById(productId).orElseThrow(
-            () -> new ApiException(MessageKeys.INVALID_PRODUCT_ID, 404)
-        );
-
-        if(activate){
-            if(product.getIsActive()){
-                throw new ApiException(MessageKeys.PRODUCT_ALREADY_ACTIVE, 400);
+                () -> new ApiException(messageService.get(MessageKeys.INVALID_PRODUCT_ID), 400));
+        if (activate) {
+            if (product.getIsActive()) {
+                throw new ApiException(messageService.get(MessageKeys.PRODUCT_ALREADY_ACTIVE), 400);
             }
             product.setIsActive(true);
+            productRepository.save(product);
             emailService.sendProductStatusEmail(product.getSeller().getUser().getEmail(), product.getName(), activate);
             return new ApiResponse(messageService.get(MessageKeys.PRODUCT_ACTIVATED_SUCCESSFULLY));
         } else {
-            if(!product.getIsActive()){
-                throw new ApiException(MessageKeys.PRODUCT_ALREADY_DEACTIVATED, 400);
+            if (!product.getIsActive()) {
+                throw new ApiException(messageService.get(MessageKeys.PRODUCT_ALREADY_DEACTIVATED), 400);
             }
             product.setIsActive(false);
+            productRepository.save(product);
             emailService.sendProductStatusEmail(product.getSeller().getUser().getEmail(), product.getName(), activate);
             return new ApiResponse(messageService.get(MessageKeys.PRODUCT_DEACTIVATED_SUCCESSFULLY));
         }
@@ -351,13 +407,13 @@ public class AdminServiceImpl implements AdminService {
 
     private void validateNotProtectedAdmin(User user) {
         if (user != null && MessageKeys.PROTECTED_ADMIN_EMAIL.equalsIgnoreCase(user.getEmail())) {
-            throw new ApiException(MessageKeys.AUTH_ADMIN_PROTECTED, 400);
+            throw new ApiException(messageService.get(MessageKeys.AUTH_ADMIN_PROTECTED), 400);
         }
     }
 
     private void validateUserNotDeleted(User user) {
         if (user.isDeleted()) {
-            throw new ApiException(MessageKeys.ERROR_USER_IS_DELETED, 400);
+            throw new ApiException(messageService.get(MessageKeys.ERROR_USER_IS_DELETED), 400);
 
         }
     }
@@ -415,4 +471,7 @@ public class AdminServiceImpl implements AdminService {
                 user.getLastName()).trim().replaceAll(" +", " ");
     }
 
+    private boolean containsNumbers(String text) {
+        return text != null && text.matches(".*\\d.*");
+    }
 }
