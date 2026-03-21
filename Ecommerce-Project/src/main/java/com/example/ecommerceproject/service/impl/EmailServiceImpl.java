@@ -33,7 +33,7 @@ public class EmailServiceImpl implements EmailService {
     @Override
     @Async
     public void sendActivationEmail(String toEmail, String token) {
-        String activationLink = "http:localhost:8080/activationLink=";
+        String activationLink = "http:localhost:8080/activate?token=";
 
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setFrom(from);
@@ -70,7 +70,7 @@ public class EmailServiceImpl implements EmailService {
     @Override
     @Async
     public void sendPasswordResetEmail(String toEmail, String token) {
-        String resetLink = "http:http:localhost:8080/passowrdResetLink=";
+        String resetLink = "http:http:localhost:8080/password-reset?token=";
 
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setFrom(from);
