@@ -33,7 +33,7 @@ public class EmailServiceImpl implements EmailService {
     @Override
     @Async
     public void sendActivationEmail(String toEmail, String token) {
-        String activationLink = "http://localhost:8080/api/auth/activate?token=" + token;
+        String activationLink = "http:localhost:8080/activate?token=";
 
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setFrom(from);
@@ -70,7 +70,7 @@ public class EmailServiceImpl implements EmailService {
     @Override
     @Async
     public void sendPasswordResetEmail(String toEmail, String token) {
-        String resetLink = "http://localhost:8080/api/auth/reset-password?token=" + token;
+        String resetLink = "http:http:localhost:8080/password-reset?token=";
 
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setFrom(from);
@@ -94,29 +94,49 @@ public class EmailServiceImpl implements EmailService {
     @Override
     @Async
     public void sendAccountActivationEmail(String toEmail) {
-        try {   
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(toEmail);
             message.setSubject(messageService.get(MessageKeys.EMAIL_ACCOUNT_ACTIVATED_SUBJECT));
             message.setText(messageService.get(MessageKeys.EMAIL_ACCOUNT_ACTIVATED_BODY));
             mailSender.send(message);
-        } catch (Exception e) {
-            System.err.println("Failed to send activation email: " + e.getMessage());
-        }
     }
 
     @Override
     @Async
     public void sendAccountDeactivationEmail(String toEmail) {
-        try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(toEmail);
             message.setSubject(messageService.get(MessageKeys.EMAIL_ACCOUNT_DEACTIVATED_SUBJECT));
             message.setText(messageService.get(MessageKeys.EMAIL_ACCOUNT_DEACTIVATED_BODY));
             mailSender.send(message);
-        } catch (Exception e) {
-            System.err.println("Failed to send deactivation email: " + e.getMessage());
-        }
     }
 
+    @Override
+    @Async
+    public void sendProductStatusEmail(String sellerEmail, String productName, boolean isActivated) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(sellerEmail);
+
+        if (isActivated) {
+            message.setSubject(messageService.get(MessageKeys.EMAIL_PRODUCT_ACTIVATED_SUBJECT));
+            message.setText(messageService.get(MessageKeys.EMAIL_PRODUCT_ACTIVATED_BODY, productName));
+        } else {
+            message.setSubject(messageService.get(MessageKeys.EMAIL_PRODUCT_DEACTIVATED_SUBJECT));
+            message.setText(messageService.get(MessageKeys.EMAIL_PRODUCT_DEACTIVATED_BODY, productName));
+        }
+
+        mailSender.send(message);
+    }
+
+    @Override
+    @Async
+    public void sendProductCreatedNotificationToAdmin(String sellerName, String sellerEmail, String productName, String categoryName, String brand) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(MessageKeys.PROTECTED_ADMIN_EMAIL);
+        message.setSubject(messageService.get(MessageKeys.EMAIL_PRODUCT_CREATED_SUBJECT));
+        message.setText(messageService.get(MessageKeys.EMAIL_PRODUCT_CREATED_BODY,
+            sellerName, sellerEmail, productName, categoryName, brand));
+
+        mailSender.send(message);
+    }
 }

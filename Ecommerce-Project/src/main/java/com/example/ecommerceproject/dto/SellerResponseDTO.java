@@ -11,7 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @NoArgsConstructor
 @FieldDefaults(level = PRIVATE)
-public class SellerResponseDTO {    
+public class SellerResponseDTO {
     Long id;
     String fullName;
     String email;

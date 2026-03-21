@@ -36,4 +36,3 @@ public class MessageService {
         return messageSource.getMessage(key, args, key, locale);
     }
 }
-

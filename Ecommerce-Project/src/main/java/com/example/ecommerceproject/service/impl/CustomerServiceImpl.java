@@ -1,12 +1,20 @@
 package com.example.ecommerceproject.service.impl;
 
 import static lombok.AccessLevel.PRIVATE;
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,16 +25,28 @@ import com.example.ecommerceproject.dto.AddressDTO;
 import com.example.ecommerceproject.dto.AddressPartialUpdateRequestDTO;
 import com.example.ecommerceproject.dto.AddressResponseDTO;
 import com.example.ecommerceproject.dto.ApiResponseDTO;
+import com.example.ecommerceproject.dto.CategoryFilterDetailsDTO;
+import com.example.ecommerceproject.dto.CategoryMetadataDTO;
+import com.example.ecommerceproject.dto.CategoryResponseDTO;
+import com.example.ecommerceproject.dto.CustomerProductListResponseDTO;
+import com.example.ecommerceproject.dto.CustomerProductViewResponseDTO;
 import com.example.ecommerceproject.dto.CustomerProfileResponseDTO;
 import com.example.ecommerceproject.dto.CustomerProfileUpdateRequestDTO;
 import com.example.ecommerceproject.dto.PasswordUpdateRequestDTO;
+import com.example.ecommerceproject.dto.VariationDetailsDTO;
+import com.example.ecommerceproject.dto.VariationListDTO;
 import com.example.ecommerceproject.entity.Address;
+import com.example.ecommerceproject.entity.Category;
 import com.example.ecommerceproject.entity.Customer;
+import com.example.ecommerceproject.entity.Product;
+import com.example.ecommerceproject.entity.ProductVariations;
 import com.example.ecommerceproject.entity.User;
 import com.example.ecommerceproject.enums.AddressType;
 import com.example.ecommerceproject.exception.ApiException;
 import com.example.ecommerceproject.repository.AddressRepository;
+import com.example.ecommerceproject.repository.CategoryRepository;
 import com.example.ecommerceproject.repository.CustomerRepository;
+import com.example.ecommerceproject.repository.ProductRepository;
 import com.example.ecommerceproject.service.CustomerService;
 import com.example.ecommerceproject.service.EmailService;
 import com.example.ecommerceproject.service.MessageService;
@@ -40,11 +60,10 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = PRIVATE)
 public class CustomerServiceImpl implements CustomerService {
 
-    @Value("${app.image.base-path}")
-    private String basePath;
-
     final CustomerRepository customerRepository;
     final AddressRepository addressRepository;
+    final CategoryRepository categoryRepository;
+    final ProductRepository productRepository;
     final PasswordEncoder passwordEncoder;
     final EmailService emailService;
     final MessageService messageService;
@@ -55,10 +74,12 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional(readOnly = true)
     public CustomerProfileResponseDTO getProfile(Long userId) {
         validateUserAccess(userId);
+        validateCustomerRole();
         Customer customer = getActiveCustomerByUserId(userId);
         User user = customer.getUser();
 
         CustomerProfileResponseDTO dto = mapper.map(customer, CustomerProfileResponseDTO.class);
+        dto.setId(userId);
         mapper.map(user, dto);
         dto.setId(user.getId());
         dto.setImage(computeImageUrl(userId, customer));
@@ -120,21 +141,6 @@ public class CustomerServiceImpl implements CustomerService {
             throw new ApiException(messageService.get(MessageKeys.VALIDATION_INVALID_CUSTOMER_ADDRESS_LABEL), 400);
         }
 
-        boolean exists = addressRepository
-                .existsByUserAndAddressLineIgnoreCaseAndCityIgnoreCaseAndCountryIgnoreCaseAndStateIgnoreCaseAndZipCode(
-                        user,
-                        dto.getAddressLine(),
-                        dto.getCity(),
-                        dto.getCountry(),
-                        dto.getState(),
-                        dto.getZipCode());
-
-        if (exists) {
-            throw new ApiException(
-                    messageService.get(MessageKeys.CUSTOMER_ADDRESS_ALREADY_EXISTS),
-                    409);
-        }
-
         Address address = mapper.map(dto, Address.class);
         address.setUser(user);
         addressRepository.save(address);
@@ -164,43 +170,217 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     private Customer getActiveCustomerByUserId(Long userId) {
-        Customer customer = customerRepository.findByUserId(userId)
-                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.ERROR_CUSTOMER_NOT_FOUND), 404));
+        try {
+            Customer customer = customerRepository.findByUserId(userId)
+                    .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.ERROR_CUSTOMER_NOT_FOUND), 404));
 
-        if (!customer.getUser().isActive()) {
-            throw new ApiException(messageService.get(MessageKeys.AUTH_ACCOUNT_NOT_ACTIVATED), 400);
+            if (!customer.getUser().isActive()) {
+                throw new ApiException(messageService.get(MessageKeys.AUTH_ACCOUNT_NOT_ACTIVATED), 400);
+            }
+            return customer;
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            throw new ApiException(messageService.get(MessageKeys.ERROR_CUSTOMER_NOT_FOUND), 404);
         }
-        return customer;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryResponseDTO> getCategories(Long categoryId) {
+        List<Category> categories;
+
+        if (categoryId == null) {
+            categories = categoryRepository.findByParentCategoryIsNull();
+        } else {
+            if (!categoryRepository.existsById(categoryId)) {
+                throw new ApiException(messageService.get(MessageKeys.INVALID_CATEGORY_ID), 400);
+            }
+            categories = categoryRepository.findByParentCategoryId(categoryId);
+        }
+
+        return categories.stream().map(cat -> {
+            CategoryResponseDTO dto = new CategoryResponseDTO();
+            dto.setId(cat.getId());
+            dto.setName(cat.getName());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CategoryFilterDetailsDTO getCategoryFilteringDetails(Long categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ApiException(MessageKeys.INVALID_CATEGORY_ID, 400));
+
+        CategoryFilterDetailsDTO filterDTO = new CategoryFilterDetailsDTO();
+
+        List<CategoryMetadataDTO> metadataList = category.getFieldValues().stream().map(fv -> {
+            CategoryMetadataDTO metaDTO = new CategoryMetadataDTO();
+            metaDTO.setMetadataFieldId(fv.getMetadataField().getId());
+            metaDTO.setFieldName(fv.getMetadataField().getName());
+            metaDTO.setPossibleValues(fv.getValue());
+            return metaDTO;
+        }).collect(Collectors.toList());
+
+        filterDTO.setMetadataFields(metadataList);
+
+        List<Long> allRelatedCategoryIds = new ArrayList<>();
+        collectCategoryIdsRecursively(category, allRelatedCategoryIds);
+
+        filterDTO.setBrands(productRepository.findDistinctBrandsByCategoryIds(allRelatedCategoryIds));
+
+        Double minPrice = productRepository.findMinPriceByCategoryIds(allRelatedCategoryIds);
+        Double maxPrice = productRepository.findMaxPriceByCategoryIds(allRelatedCategoryIds);
+
+        filterDTO.setMinPrice(minPrice != null ? minPrice : 0.0);
+        filterDTO.setMaxPrice(maxPrice != null ? maxPrice : 0.0);
+
+        return filterDTO;
+    }
+
+    @Transactional(readOnly = true)
+    public CustomerProductViewResponseDTO getProductDetails(Long productId) {
+        Product product = productRepository.findByIdAndIsDeletedFalseAndIsActiveTrue(productId)
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.PRODUCT_NOT_FOUND), 400));
+
+        List<ProductVariations> activeVariations = product.getProductVariationList().stream()
+                .filter(ProductVariations::getIsActive)
+                .collect(Collectors.toList());
+
+        if (activeVariations.isEmpty()) {
+            throw new ApiException(messageService.get(MessageKeys.PRODUCT_VARIATIONS_NOT_AVAILABLE), 400);
+        }
+
+        CustomerProductViewResponseDTO response = mapper.map(product, CustomerProductViewResponseDTO.class);
+        response.setVariations(activeVariations.stream()
+                .map(variation -> {
+                    VariationDetailsDTO dto = mapper.map(variation, VariationDetailsDTO.class);
+
+                    int variationNumber = getVariationNumberFromId(variation.getId());
+
+                    if (variation.getPrimaryImageName() != null) {
+                        dto.setPrimaryImageUrl("/api/user/products/" + productId + "/images/" + variation.getPrimaryImageName());
+                    }
+
+                    dto.setSecondaryImageUrls(generateSecondaryImageUrls(productId, variationNumber));
+
+                    return dto;
+                })
+                .collect(Collectors.toList()));
+
+        return response;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CustomerProductListResponseDTO> getAllProductsByCategory(
+            Long categoryId, int offset, int max, String sort, String order) {
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.INVALID_CATEGORY_ID), 400));
+
+        List<Long> categoryIds = extractAllCategoryIds(category);
+
+        Pageable pageable = PageRequest.of(offset, max, Sort.Direction.fromString(order.toUpperCase()), sort);
+
+        return productRepository.findActiveProductsWithActiveVariationsByCategoryIds(categoryIds, pageable)
+                .map(this::mapToProductListResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CustomerProductListResponseDTO> getSimilarProducts(
+            Long productId, int offset, int max, String sort, String order) {
+        Product baseProduct = productRepository.findByIdAndIsDeletedFalseAndIsActiveTrue(productId)
+                .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.PRODUCT_NOT_FOUND), 400));
+
+        Long categoryId = baseProduct.getCategory().getId();
+
+        Pageable pageable = PageRequest.of(offset, max, Sort.Direction.fromString(order.toUpperCase()), sort);
+
+        return productRepository.findSimilarProducts(categoryId, productId, pageable)
+                .map(this::mapToProductListResponse);
+    }
+
+    private List<Long> extractAllCategoryIds(Category category) {
+        List<Long> ids = new ArrayList<>();
+        ids.add(category.getId());
+
+        if (category.getSubCategories() != null && !category.getSubCategories().isEmpty()) {
+            for (Category child : category.getSubCategories()) {
+                ids.addAll(extractAllCategoryIds(child));
+            }
+        }
+        return ids;
+    }
+
+    private CustomerProductListResponseDTO mapToProductListResponse(Product product) {
+        CustomerProductListResponseDTO dto = mapper.map(product, CustomerProductListResponseDTO.class);
+
+        List<VariationListDTO> variationDTOs = product.getProductVariationList().stream()
+                .filter(ProductVariations::getIsActive)
+                .map(variation -> {
+                    VariationListDTO variationDto = mapper.map(variation, VariationListDTO.class);
+
+                    if (variation.getPrimaryImageName() != null) {
+                        variationDto.setPrimaryImageUrl("/api/user/products/" + product.getId() + "/images/" + variation.getPrimaryImageName());
+                    }
+
+                    return variationDto;
+                })
+                .collect(Collectors.toList());
+
+        dto.setVariations(variationDTOs);
+        return dto;
     }
 
     private String computeImageUrl(Long userId, Customer customer) {
-        File userDir = Paths.get(basePath, "users").toFile();
-        if (!userDir.exists() || !userDir.isDirectory()) {
+        try {
+            Path userDir = Paths.get("uploads/users/");
+            if (!Files.exists(userDir)) {
+                return null;
+            }
+
+            Long[] idsToTry = { userId, customer != null ? customer.getId() : null };
+
+            for (Long id : idsToTry) {
+                if (id == null) continue;
+
+                String imageUrl = findImageForId(id);
+                if (imageUrl != null) {
+                    return imageUrl;
+                }
+            }
+
+            return null;
+        } catch (Exception e) {
             return null;
         }
-        Long[] idsToTry = {userId, customer != null ? customer.getId() : null};
-        
-        for (Long id : idsToTry) {
-            if (id == null) continue;
-            
-            String imageUrl = findImageForId(userDir, id);
-            if (imageUrl != null) {
-                return imageUrl;
-            }
-        }
-        
-        return null;
     }
 
-    private String findImageForId(File directory, Long id) {
-        File[] files = directory.listFiles((dir, name) -> {
-            String lowerName = name.toLowerCase();
-            return lowerName.startsWith(id + ".") && 
-                   (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || 
-                    lowerName.endsWith(".png") || lowerName.endsWith(".gif"));
-        });
-        
-        return (files != null && files.length > 0) ? "/images/users/" + files[0].getName() : null;
+    private void collectCategoryIdsRecursively(Category category, List<Long> ids) {
+        ids.add(category.getId());
+
+        if (category.getSubCategories() != null && !category.getSubCategories().isEmpty()) {
+            for (Category child : category.getSubCategories()) {
+                collectCategoryIdsRecursively(child, ids);
+            }
+        }
+    }
+
+    private String findImageForId(Long id) {
+        try {
+            Path userDir = Paths.get("uploads/users/");
+            for (String extension : Arrays.asList("jpg", "jpeg", "png")) {
+                Path imagePath = userDir.resolve(id + "." + extension);
+                if (Files.exists(imagePath)) {
+                    return "/api/user/" + id + "/image/" + id + "." + extension;
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private Address getValidAddressForUser(Long userId, Long addressId) {
@@ -223,11 +403,73 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     private Long getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
-            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            return userDetails.getUserId();
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
+                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                return userDetails.getUserId();
+            }
+            throw new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_AUTHENTICATED), 401);
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            throw new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_AUTHENTICATED), 401);
         }
-        throw new ApiException(messageService.get(MessageKeys.AUTH_USER_NOT_AUTHENTICATED), 401);
     }
+
+    private void validateCustomerRole() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.getAuthorities().stream()
+                    .anyMatch(auth -> auth.getAuthority().equals(MessageKeys.ROLE_CUSTOMER))) {
+                throw new ApiException(messageService.get(MessageKeys.ERROR_ACCESS_DENIED), 403);
+            }
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            throw new ApiException(messageService.get(MessageKeys.ERROR_ACCESS_DENIED), 403);
+        }
+    }
+
+    private int getVariationNumberFromId(Long variationId) {
+
+        return variationId.intValue();
+    }
+
+    private List<String> generateSecondaryImageUrls(Long productId, int variationNumber) {
+        List<String> secondaryUrls = new ArrayList<>();
+        try {
+            Path productDir = Paths.get("uploads/products/" + productId);
+            if (!Files.exists(productDir)) {
+                return secondaryUrls;
+            }
+
+            String basePattern = productId + "v" + variationNumber + "_";
+
+            for (int i = 1; i <= 10; i++) {
+                boolean foundImage = false;
+                for (String extension : Arrays.asList("jpg", "jpeg", "png")) {
+                    String filename = basePattern + i + "." + extension;
+                    Path imagePath = productDir.resolve(filename);
+                    if (Files.exists(imagePath)) {
+                        secondaryUrls.add("/api/user/products/" + productId + "/images/" + filename);
+                        foundImage = true;
+                        break;
+                    }
+                }
+
+                if (!foundImage) {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+
+            System.err.println("Error generating secondary image URLs for product " + productId +
+                             " variation " + variationNumber + ": " + e.getMessage());
+        }
+        return secondaryUrls;
+    }
+
 }

@@ -21,21 +21,21 @@ public class AddressPartialUpdateRequestDTO {
     String addressLine;
 
     @Schema(description = "City", example = "Delhi")
-    @Size(max = 100, message = "{validation.city_invalid}")
+    @Size(max = 40, message = "{validation.city_invalid}")
     String city;
 
     @Schema(description = "State", example = "Uttar Pradesh")
-    @Size(max = 100, message = "{validation.state_invalid}")
+    @Size(max = 40, message = "{validation.state_invalid}")
     String state;
 
     @Schema(description = "Country", example = "India")
-    @Size(max = 100, message = "{validation.country_invalid}")
+    @Size(max = 45, message = "{validation.country_invalid}")
     String country;
 
     @Schema(description = "ZIP code", example = "110001")
-    @Size(max = 20, message = "{validation.zip_code_invalid}")
+    @Size(max = 6, message = "{validation.zip_code_invalid}")
     String zipCode;
-    
+
     @Schema(description = "Address label", example = "OFFICE")
     AddressType label;
 }

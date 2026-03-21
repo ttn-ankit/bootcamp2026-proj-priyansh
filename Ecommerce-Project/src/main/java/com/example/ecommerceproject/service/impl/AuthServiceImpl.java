@@ -159,21 +159,20 @@ public class AuthServiceImpl implements AuthService {
                     .orElseThrow(() -> new ApiException(MessageKeys.AUTH_USER_NOT_FOUND, 404));
             entity.setInvalidAttemptCount(0);
 
+            service.revokeAllRefreshTokens(entity);
+
             String accessToken = jwtUtil.generateToken(userDetails.getUserId(), userDetails.getUsername(),
                     userDetails.getAuthorities());
             String accessTokenJti = jwtUtil.extractJti(accessToken);
-            LocalDateTime accessTokenExpiry = LocalDateTime.now().plusMinutes(15);
 
-            // Store access token in database
-            service.storeAccessToken(accessTokenJti, entity, accessTokenExpiry);
+            service.storeAccessToken(accessTokenJti, entity);
 
             RefreshToken refreshToken = new RefreshToken();
             refreshToken.setUser(entity);
             String refreshId = UUID.randomUUID().toString();
             refreshToken.setTokenId(refreshId);
             refreshToken.setAccessTokenJti(accessTokenJti);
-            refreshToken.setExpiryDate(LocalDateTime.now().plusDays(1));
-            refreshToken.setAccessTokenExpiry(accessTokenExpiry);
+            refreshToken.setCreatedAt(LocalDateTime.now());
             refreshTokenRepository.save(refreshToken);
 
             String refreshTokenValue = jwtUtil.generateRefreshToken(userDetails.getUserId(), userDetails.getUsername(),
@@ -205,8 +204,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public ApiResponseDTO logout(String accessTokenValue, String refreshTokenValue) {
         boolean handled = false;
-        
-        // Handle access token deletion from database
+
         if (accessTokenValue != null && !accessTokenValue.isBlank()) {
             if (jwtUtil.isTokenValid(accessTokenValue)) {
                 String accessTokenJti = jwtUtil.extractJti(accessTokenValue);
@@ -214,8 +212,7 @@ public class AuthServiceImpl implements AuthService {
                 handled = true;
             }
         }
-        
-        // Handle refresh token deletion from database
+
         if (refreshTokenValue != null && !refreshTokenValue.isBlank()) {
             if (jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
                 String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
@@ -225,11 +222,11 @@ public class AuthServiceImpl implements AuthService {
                 }
             }
         }
-        
+
         if (!handled) {
             throw new ApiException(MessageKeys.AUTH_TOKEN_REQUIRED, 401);
         }
-        
+
         return new ApiResponseDTO(
                 messageService.get(MessageKeys.AUTH_LOGOUT_SUCCESS),
                 200);
@@ -261,11 +258,6 @@ public class AuthServiceImpl implements AuthService {
                     .orElseThrow(() -> new ApiException(
                             MessageKeys.AUTH_REFRESH_TOKEN_REVOKED, 401));
 
-            if (existingToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-                service.deleteRefreshToken(refreshId);
-                throw new ApiException(MessageKeys.AUTH_REFRESH_TOKEN_EXPIRED, 401);
-            }
-
             User user = userRepository.findWithRolesByEmailAndIsDeletedFalse(email)
                     .orElseThrow(() -> new ApiException(
                             MessageKeys.AUTH_USER_NOT_FOUND, 404));
@@ -274,7 +266,6 @@ public class AuthServiceImpl implements AuthService {
                 throw new ApiException(MessageKeys.AUTH_INVALID_REFRESH_TOKEN, 401);
             }
 
-            // Delete old access token from database
             service.deleteAccessToken(existingToken.getAccessTokenJti());
 
             CustomUserDetails userDetails = new CustomUserDetails(user);
@@ -284,19 +275,14 @@ public class AuthServiceImpl implements AuthService {
                     userDetails.getAuthorities());
 
             String newAccessTokenJti = jwtUtil.extractJti(newAccessToken);
-            LocalDateTime newAccessTokenExpiry = LocalDateTime.now().plusMinutes(15);
 
-            // Store new access token in database
-            service.storeAccessToken(newAccessTokenJti, user, newAccessTokenExpiry);
+            service.storeAccessToken(newAccessTokenJti, user);
 
-            // Update existing refresh token with new access token JTI (keep same refresh token)
             existingToken.setAccessTokenJti(newAccessTokenJti);
-            existingToken.setAccessTokenExpiry(newAccessTokenExpiry);
-            // Note: We don't save explicitly as we're in a transactional context and using dirty checking
 
             return new LoginResponseDTO(
                     newAccessToken,
-                    refreshTokenValue, // Return the same refresh token value
+                    refreshTokenValue,
                     userDetails.getAuthorities().stream().toList(),
                     user.getEmail(),
                     messageService.get(MessageKeys.AUTH_REFRESH_SUCCESS));

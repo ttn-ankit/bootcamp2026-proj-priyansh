@@ -2,7 +2,6 @@ package com.example.ecommerceproject.service.impl;
 
 import static lombok.AccessLevel.PRIVATE;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -36,15 +35,13 @@ public class UserSessionServiceImpl implements UserSessionService {
         }
 
         List<RefreshToken> tokens = refreshTokenRepository.findAllByUser(user);
-        
+
         if (!tokens.isEmpty()) {
             refreshTokenRepository.deleteAll(tokens);
         }
 
-        // Also delete access tokens for the user
         accessTokenRepository.deleteByUser(user);
-        
-        // Delete activation tokens for the user
+
         activationTokenRepository.deleteByUser(user);
 
         return tokens.size();
@@ -56,15 +53,14 @@ public class UserSessionServiceImpl implements UserSessionService {
         refreshTokenRepository.findByTokenId(refreshId)
                 .ifPresent(token -> {
                     refreshTokenRepository.delete(token);
-                    // Also delete associated access tokens for this user
                     accessTokenRepository.deleteByUser(token.getUser());
                 });
     }
 
     @Override
     @Transactional
-    public void storeAccessToken(String jti, User user, LocalDateTime expiryDate) {
-        AccessToken accessToken = new AccessToken(jti, user, expiryDate);
+    public void storeAccessToken(String jti, User user) {
+        AccessToken accessToken = new AccessToken(jti, user);
         accessTokenRepository.save(accessToken);
     }
 
@@ -78,6 +74,6 @@ public class UserSessionServiceImpl implements UserSessionService {
     @Override
     @Transactional(readOnly = true)
     public boolean isAccessTokenValid(String jti) {
-        return accessTokenRepository.existsByJtiAndNotExpired(jti, LocalDateTime.now());
+        return accessTokenRepository.existsByJti(jti);
     }
 }

@@ -3,6 +3,7 @@ package com.example.ecommerceproject.dto;
 import static lombok.AccessLevel.PRIVATE;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
+import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
@@ -35,5 +36,6 @@ public class SellerRegisterRequestDTO extends BaseRegistrationDTO{
         requiredMode = Schema.RequiredMode.REQUIRED
     )
     @NotNull(message = "{validation.address_required}")
+    @Valid
     AddressDTO address;
 }

@@ -40,13 +40,17 @@ public class RefreshToken {
     @JoinColumn(name = "user_id", nullable = false)
     User user;
 
-    @Column(name = "expiry_date", nullable = false)
-    LocalDateTime expiryDate;
-
-    @Column(name = "access_token_expiry", nullable = false)
-    LocalDateTime accessTokenExpiry;
+    @Column(name = "created_at", nullable = false)
+    LocalDateTime createdAt;
 
     @Column(name = "revoked", nullable = false)
     boolean revoked = false;
-}
 
+    public RefreshToken(String tokenId, String accessTokenJti, User user) {
+        this.tokenId = tokenId;
+        this.accessTokenJti = accessTokenJti;
+        this.user = user;
+        this.createdAt = LocalDateTime.now();
+        this.revoked = false;
+    }
+}

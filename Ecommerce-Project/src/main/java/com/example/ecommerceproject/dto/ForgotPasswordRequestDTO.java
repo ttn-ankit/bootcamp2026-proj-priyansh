@@ -21,4 +21,3 @@ public class ForgotPasswordRequestDTO {
     @Email(message = "{validation.email_invalid}")
     String email;
 }
-

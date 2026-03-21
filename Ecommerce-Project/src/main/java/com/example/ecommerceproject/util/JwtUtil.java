@@ -22,8 +22,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = PRIVATE)
 public class JwtUtil {
 
-        public static final long ACCESS_TOKEN_VALIDITY = 15 * 60 * 1000L; // 15 minutes
-        public static final long REFRESH_TOKEN_VALIDITY = 24 * 60 * 60 * 1000L; // 1 day
+        public static final long ACCESS_TOKEN_VALIDITY = 15 * 60 * 1000L;
+        public static final long REFRESH_TOKEN_VALIDITY = 24 * 60 * 60 * 1000L;
         static final long PASSWORD_RESET_TOKEN_VALIDITY = 3600000;
         static final int HMAC_KEY_MIN_BYTES = 32;
         static final String CLAIM_PURPOSE = "purpose";
@@ -105,16 +105,12 @@ public class JwtUtil {
         }
 
         public boolean isRefreshTokenValid(String token) {
-                try {
-                        Claims claims = extractAllClaims(token);
-                        String purpose = claims.get(CLAIM_PURPOSE, String.class);
-                        if (!PURPOSE_REFRESH.equals(purpose)) {
-                                return false;
-                        }
-                        return claims.getExpiration().after(new Date());
-                } catch (Exception e) {
+                Claims claims = extractAllClaims(token);
+                String purpose = claims.get(CLAIM_PURPOSE, String.class);
+                if (!PURPOSE_REFRESH.equals(purpose)) {
                         return false;
                 }
+                return claims.getExpiration().after(new Date());
         }
 
         public String extractJti(String token) {
@@ -164,17 +160,13 @@ public class JwtUtil {
 
                 return email.equals(user.getUsername()) && expiration.after(new Date());
         }
-        
+
         public boolean isTokenValid(String token) {
-                try {
-                        Claims claims = extractAllClaims(token);
-                        String purpose = claims.get(CLAIM_PURPOSE, String.class);
-                        if (purpose != null && !PURPOSE_ACCESS.equals(purpose)) {
-                                return false;
-                        }
-                        return claims.getExpiration().after(new Date());
-                } catch (Exception e) {
+                Claims claims = extractAllClaims(token);
+                String purpose = claims.get(CLAIM_PURPOSE, String.class);
+                if (purpose != null && !PURPOSE_ACCESS.equals(purpose)) {
                         return false;
                 }
+                return claims.getExpiration().after(new Date());
         }
 }
