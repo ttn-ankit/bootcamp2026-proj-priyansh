@@ -255,7 +255,19 @@ public class CustomerServiceImpl implements CustomerService {
 
         CustomerProductViewResponseDTO response = mapper.map(product, CustomerProductViewResponseDTO.class);
         response.setVariations(activeVariations.stream()
-                .map(v -> mapper.map(v, VariationDetailsDTO.class))
+                .map(variation -> {
+                    VariationDetailsDTO dto = mapper.map(variation, VariationDetailsDTO.class);
+
+                    int variationNumber = getVariationNumberFromId(variation.getId());
+
+                    if (variation.getPrimaryImageName() != null) {
+                        dto.setPrimaryImageUrl("/api/user/products/" + productId + "/images/" + variation.getPrimaryImageName());
+                    }
+
+                    dto.setSecondaryImageUrls(generateSecondaryImageUrls(productId, variationNumber));
+
+                    return dto;
+                })
                 .collect(Collectors.toList()));
 
         return response;
@@ -293,7 +305,7 @@ public class CustomerServiceImpl implements CustomerService {
     private List<Long> extractAllCategoryIds(Category category) {
         List<Long> ids = new ArrayList<>();
         ids.add(category.getId());
-        
+
         if (category.getSubCategories() != null && !category.getSubCategories().isEmpty()) {
             for (Category child : category.getSubCategories()) {
                 ids.addAll(extractAllCategoryIds(child));
@@ -304,12 +316,20 @@ public class CustomerServiceImpl implements CustomerService {
 
     private CustomerProductListResponseDTO mapToProductListResponse(Product product) {
         CustomerProductListResponseDTO dto = mapper.map(product, CustomerProductListResponseDTO.class);
-        
+
         List<VariationListDTO> variationDTOs = product.getProductVariationList().stream()
                 .filter(ProductVariations::getIsActive)
-                .map(v -> mapper.map(v, VariationListDTO.class))
+                .map(variation -> {
+                    VariationListDTO variationDto = mapper.map(variation, VariationListDTO.class);
+
+                    if (variation.getPrimaryImageName() != null) {
+                        variationDto.setPrimaryImageUrl("/api/user/products/" + product.getId() + "/images/" + variation.getPrimaryImageName());
+                    }
+
+                    return variationDto;
+                })
                 .collect(Collectors.toList());
-                
+
         dto.setVariations(variationDTOs);
         return dto;
     }
@@ -412,4 +432,44 @@ public class CustomerServiceImpl implements CustomerService {
             throw new ApiException(messageService.get(MessageKeys.ERROR_ACCESS_DENIED), 403);
         }
     }
+
+    private int getVariationNumberFromId(Long variationId) {
+
+        return variationId.intValue();
+    }
+
+    private List<String> generateSecondaryImageUrls(Long productId, int variationNumber) {
+        List<String> secondaryUrls = new ArrayList<>();
+        try {
+            Path productDir = Paths.get("uploads/products/" + productId);
+            if (!Files.exists(productDir)) {
+                return secondaryUrls;
+            }
+
+            String basePattern = productId + "v" + variationNumber + "_";
+
+            for (int i = 1; i <= 10; i++) {
+                boolean foundImage = false;
+                for (String extension : Arrays.asList("jpg", "jpeg", "png")) {
+                    String filename = basePattern + i + "." + extension;
+                    Path imagePath = productDir.resolve(filename);
+                    if (Files.exists(imagePath)) {
+                        secondaryUrls.add("/api/user/products/" + productId + "/images/" + filename);
+                        foundImage = true;
+                        break;
+                    }
+                }
+
+                if (!foundImage) {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+
+            System.err.println("Error generating secondary image URLs for product " + productId +
+                             " variation " + variationNumber + ": " + e.getMessage());
+        }
+        return secondaryUrls;
+    }
+
 }

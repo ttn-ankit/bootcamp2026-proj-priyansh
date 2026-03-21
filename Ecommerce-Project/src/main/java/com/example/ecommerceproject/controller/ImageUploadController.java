@@ -36,36 +36,57 @@ public class ImageUploadController {
 
     private final ImageUploadService imageUploadService;
 
-    @Operation(summary = "Upload Profile Image", 
+    @Operation(summary = "Upload Profile Image",
                description = "Upload a profile image for the user. Supports JPG, JPEG, PNG formats. Maximum file size: 5MB")
     @PostMapping("/{userId}/image")
     public ResponseEntity<ApiResponseDTO> uploadImage(
             @Parameter(description = "User ID", required = true)
-            @PathVariable 
+            @PathVariable
             @Positive(message = "{validation.invalid_id_format}")
             Long userId,
-            
+
             @Parameter(description = "Image file to upload", required = true)
-            @RequestParam("image") 
+            @RequestParam("image")
             MultipartFile file) {
-        
+
         return ResponseEntity.ok(imageUploadService.uploadUserImage(userId, file));
     }
 
-    @Operation(summary = "Get User Image", 
+    @Operation(summary = "Get User Image",
                description = "Retrieve user profile image. Customers/Sellers can only access their own images. Admins can access any user's image.")
     @GetMapping("/{userId}/image/{filename}")
     public ResponseEntity<Resource> getUserImage(
             @Parameter(description = "User ID", required = true)
-            @PathVariable 
+            @PathVariable
             @Positive(message = "{validation.invalid_id_format}")
             Long userId,
-            
+
             @Parameter(description = "Image filename", required = true)
-            @PathVariable 
+            @PathVariable
             String filename) {
-        
+
         Resource resource = imageUploadService.getUserImage(userId, filename);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                .body(resource);
+    }
+
+    @Operation(summary = "Get Product Image",
+               description = "Retrieve product variation image.")
+    @GetMapping("/products/{productId}/images/{filename}")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<Resource> getProductImage(
+            @Parameter(description = "Product ID", required = true)
+            @PathVariable
+            @Positive(message = "{validation.invalid_id_format}")
+            Long productId,
+
+            @Parameter(description = "Image filename", required = true)
+            @PathVariable
+            String filename) {
+
+        Resource resource = imageUploadService.getProductImage(productId, filename);
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_JPEG)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")

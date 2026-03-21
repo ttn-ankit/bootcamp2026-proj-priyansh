@@ -17,10 +17,10 @@ public class ProductResponseDTO {
     Long id;
     String name;
     String desc;
-    boolean isActive;
+    Boolean isActive;
     String brand;
-    boolean isCancellable;
-    boolean isReturnable;
+    Boolean isCancellable;
+    Boolean isReturnable;
     CategoryResponseDTO category;
-    List<ProductVariationDTO> variations;
+    List<ProductVariationResponse> variations;
 }

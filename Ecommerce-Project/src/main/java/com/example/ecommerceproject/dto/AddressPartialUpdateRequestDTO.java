@@ -35,7 +35,7 @@ public class AddressPartialUpdateRequestDTO {
     @Schema(description = "ZIP code", example = "110001")
     @Size(max = 6, message = "{validation.zip_code_invalid}")
     String zipCode;
-    
+
     @Schema(description = "Address label", example = "OFFICE")
     AddressType label;
 }

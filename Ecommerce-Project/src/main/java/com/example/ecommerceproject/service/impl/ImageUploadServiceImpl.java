@@ -39,7 +39,7 @@ public class ImageUploadServiceImpl implements ImageUploadService {
     final MessageService messageService;
     static final String UPLOAD_DIR = "uploads/users/";
     static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png");
-    static final long MAX_FILE_SIZE = 5 * 1024 * 1024; 
+    static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
 
     @Override
     @Transactional(readOnly = true)
@@ -49,7 +49,7 @@ public class ImageUploadServiceImpl implements ImageUploadService {
             if (!userId.equals(authenticatedUserId)) {
                 throw new ApiException(MessageKeys.ERROR_ACCESS_DENIED, 403);
             }
-            
+
             userRepository.findById(userId)
                     .orElseThrow(() -> new ApiException(MessageKeys.ERROR_USER_NOT_FOUND, 404));
             validateFile(file);
@@ -87,27 +87,52 @@ public class ImageUploadServiceImpl implements ImageUploadService {
         try {
             Long authenticatedUserId = getCurrentUserId();
             String userRole = getCurrentUserRole();
-            
+
             if (!"ADMIN".equals(userRole) && !userId.equals(authenticatedUserId)) {
                 throw new ApiException(MessageKeys.ERROR_ACCESS_DENIED, 403);
             }
 
             Path imagePath = Paths.get(UPLOAD_DIR).resolve(filename);
-            
+
             if (!Files.exists(imagePath)) {
                 throw new ApiException(MessageKeys.IMAGE_NOT_FOUND, 404);
             }
-            
+
             String expectedPrefix = userId + ".";
             if (!filename.startsWith(expectedPrefix)) {
                 throw new ApiException(MessageKeys.ERROR_ACCESS_DENIED, 403);
             }
-            
+
             String fileExtension = getFileExtension(filename);
             if (!ALLOWED_EXTENSIONS.contains(fileExtension.toLowerCase())) {
                 throw new ApiException(MessageKeys.IMAGE_INVALID_FORMAT, 400);
             }
-            
+
+            return new FileSystemResource(imagePath);
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw e;
+            }
+            throw new ApiException(MessageKeys.ERROR_INTERNAL_SERVER, 500);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Resource getProductImage(Long productId, String filename) {
+        try {
+
+            Path imagePath = Paths.get("uploads/products/" + productId).resolve(filename);
+
+            if (!Files.exists(imagePath)) {
+                throw new ApiException(MessageKeys.IMAGE_NOT_FOUND, 404);
+            }
+
+            String fileExtension = getFileExtension(filename);
+            if (!ALLOWED_EXTENSIONS.contains(fileExtension.toLowerCase())) {
+                throw new ApiException(MessageKeys.IMAGE_INVALID_FORMAT, 400);
+            }
+
             return new FileSystemResource(imagePath);
         } catch (Exception e) {
             if (e instanceof ApiException) {

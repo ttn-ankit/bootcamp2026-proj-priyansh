@@ -35,13 +35,13 @@ public class UserSessionServiceImpl implements UserSessionService {
         }
 
         List<RefreshToken> tokens = refreshTokenRepository.findAllByUser(user);
-        
+
         if (!tokens.isEmpty()) {
             refreshTokenRepository.deleteAll(tokens);
         }
 
         accessTokenRepository.deleteByUser(user);
-        
+
         activationTokenRepository.deleteByUser(user);
 
         return tokens.size();

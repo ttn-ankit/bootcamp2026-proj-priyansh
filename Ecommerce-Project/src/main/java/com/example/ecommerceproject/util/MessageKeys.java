@@ -5,13 +5,11 @@ public final class MessageKeys {
     private MessageKeys() {
     }
 
-    // Protected Admin Constants
     public static final String PROTECTED_ADMIN_FIRST_NAME = "System";
     public static final String PROTECTED_ADMIN_LAST_NAME = "Admin";
     public static final String PROTECTED_ADMIN_PASSWORD = "Admin@123";
     public static final String PROTECTED_ADMIN_EMAIL = "admin@ecommerce.com";
 
-    // Authentication Messages
     public static final String AUTH_INVALID_CREDENTIALS = "auth.invalid_credentials";
     public static final String AUTH_ACCOUNT_LOCKED = "auth.account_locked";
     public static final String AUTH_ACCOUNT_NOT_ACTIVATED = "auth.account_not_activated";
@@ -37,8 +35,8 @@ public final class MessageKeys {
     public static final String AUTH_USER_NOT_AUTHENTICATED = "auth.user_not_authenticated";
     public static final String AUTH_AUTHENTICATION_REQUIRED = "auth.authentication_required";
 
-    // Validation Messages
     public static final String VALIDATION_FAILED = "validation.failed";
+    public static final String VALIDATION_INVALID_JSON_FORMAT = "validation.invalid_json_format";
     public static final String VALIDATION_EMAIL_EXISTS = "validation.email_exists";
     public static final String VALIDATION_GST_EXISTS = "validation.gst_exists";
     public static final String VALIDATION_COMPANY_NAME_EXISTS = "validation.company_name_exists";
@@ -58,18 +56,15 @@ public final class MessageKeys {
     public static final String VALIDATION_INVALID_CUSTOMER_ADDRESS_LABEL = "validation.invalid_customer_address_label";
     public static final String VALIDATION_SELLER_SINGLE_ADDRESS = "validation.seller_single_address";
 
-    // Directory and Role Constants
     public static final String DIRECTORY_UPLOADS_USERS = "directory.uploads_users";
     public static final String ROLE_CUSTOMER = "role.customer";
     public static final String ROLE_SELLER = "role.seller";
 
-    // Response Keys
     public static final String RESPONSE_TIMESTAMP = "response.timestamp";
     public static final String RESPONSE_MESSAGE = "response.message";
     public static final String RESPONSE_STATUS = "response.status";
     public static final String RESPONSE_PATH = "response.path";
 
-    // Image Messages
     public static final String IMAGE_NOT_FOUND = "image.not_found";
     public static final String IMAGE_UPLOAD_SUCCESS = "image.upload_success";
     public static final String IMAGE_UPLOAD_FAILED = "image.upload_failed";
@@ -79,9 +74,10 @@ public final class MessageKeys {
     public static final String IMAGE_INVALID_FORMAT = "image.invalid_format";
     public static final String IMAGE_PATH_PREFIX = "image.path_prefix";
 
-    // Product Messages
     public static final String PRODUCT_NAME_EXISTS = "product.name_exists";
     public static final String PRODUCT_MUST_BE_ACTIVE = "product.must_be_active";
+    public static final String PRODUCT_PRIMARY_IMAGE_FORMAT = "product.primary_image_format";
+    public static final String PRODUCT_SECONDARY_IMAGE_FORMAT = "product.secondary_image_format";
     public static final String PRODUCT_NO_METADATA_FIELDS = "product.no_metadata_fields";
     public static final String PRODUCT_INVALID_METADATA_FIELD = "product.invalid_metadata_field";
     public static final String PRODUCT_INVALID_METADATA_VALUE = "product.invalid_metadata_value";
@@ -100,7 +96,6 @@ public final class MessageKeys {
     public static final String PRODUCT_VARIATION_UPDATED_SUCCESSFULLY = "product.variation_updated_successfully";
     public static final String PRODUCT_VARIATIONS_NOT_AVAILABLE = "product.variations_not_available";
 
-    // Error Messages
     public static final String ERROR_INTERNAL_SERVER = "error.internal_server";
     public static final String ERROR_SELLER_NOT_FOUND = "error.seller_not_found";
     public static final String ERROR_ROLE_NOT_FOUND = "error.role_not_found";
@@ -111,23 +106,19 @@ public final class MessageKeys {
     public static final String ERROR_ACCESS_DENIED = "error.access_denied";
     public static final String ERROR_USER_NOT_FOUND = "error.user_not_found";
 
-    // Admin Messages
     public static final String ADMIN_USER_ACTIVATED = "admin.user_activated";
     public static final String ADMIN_USER_DEACTIVATED = "admin.user_deactivated";
 
-    // Customer Service Messages
     public static final String CUSTOMER_PROFILE_UPDATED = "customer.profile_updated";
     public static final String CUSTOMER_PASSWORD_UPDATED = "customer.password_updated";
     public static final String CUSTOMER_ADDRESS_ADDED = "customer.address_added";
     public static final String CUSTOMER_ADDRESS_UPDATED = "customer.address_updated";
     public static final String CUSTOMER_ADDRESS_DELETED = "customer.address_deleted";
 
-    // Seller Service Messages
     public static final String SELLER_PROFILE_UPDATED = "seller.profile_updated";
     public static final String SELLER_PASSWORD_UPDATED = "seller.password_updated";
     public static final String SELLER_ADDRESS_UPDATED = "seller.address_updated";
 
-    // Email Messages
     public static final String EMAIL_ACTIVATION_SUBJECT = "email.activation.subject";
     public static final String EMAIL_SELLER_REGISTRATION_SUBJECT = "email.seller_registration.subject";
     public static final String EMAIL_ACCOUNT_LOCKED_SUBJECT = "email.account_locked.subject";
@@ -150,14 +141,12 @@ public final class MessageKeys {
     public static final String EMAIL_PRODUCT_DEACTIVATED_BODY = "email.product_deactivated.body";
     public static final String EMAIL_PRODUCT_CREATED_BODY = "email.product_created.body";
 
-    // JWT Token Messages
     public static final String JWT_TOKEN_INVALID = "jwt.token_invalid";
     public static final String JWT_TOKEN_EXPIRED = "jwt.token_expired";
     public static final String JWT_TOKEN_MALFORMED = "jwt.token_malformed";
     public static final String JWT_CLAIM_USER_ID = "jwt.claim_user_id";
     public static final String JWT_CLAIM_PWD_UPDATED_AT = "jwt.claim_pwd_updated_at";
 
-    // Category Messages
     public static final String METADATA_FIELD_VALUE_MUST_BE_UNIQUE = "category.field_value_must_be_unique";
     public static final String METADATA_FIELD_CREATED_SUCCESSFULLY = "metadata.field_created_successfully";
     public static final String METADATA_FIELD_NAME_REQUIRED = "category.field_name_required";
@@ -183,7 +172,6 @@ public final class MessageKeys {
     public static final String VARIATION_MUST_HAVE_ONE_VALUE = "variation.must_have_one_value";
     public static final String PRODUCT_VARIATION_ALREADY_EXISTS = "product.variation_already_exists";
 
-    // Sort field mappings
     public static final String SORT_FIELD_EMAIL = "sort.field_email";
     public static final String SORT_FIELD_FIRSTNAME = "sort.field_firstname";
     public static final String SORT_FIELD_LASTNAME = "sort.field_lastname";
@@ -192,13 +180,10 @@ public final class MessageKeys {
     public static final String SORT_FIELD_UPDATED = "sort.field_updated";
     public static final String SORT_FIELD_ID = "sort.field_id";
 
-    // File Extensions
     public static final String FILE_EXTENSIONS_ALLOWED = "file.extensions_allowed";
 
-    // Address Messages
     public static final String ADDRESS_NOT_AVAILABLE = "address.not_available";
 
-    // Additional keys for GlobalExceptionHandler
     public static final String TABLE_CATEGORY_METADATA_FIELD_VALUES = "table.category_metadata_field_values";
     public static final String VALIDATION_ID_SUFFIX = "validation.id_suffix";
     public static final String IMAGE_PART_NAME = "image.part_name";
@@ -206,5 +191,6 @@ public final class MessageKeys {
     public static final String PARENT_CATEGORY_CANNOT_HAVE_METADATA = "parent.metadata_not_allowed";
     public static final String PRODUCT_INVALID_METADATA_VALUES = "product.invalid_metadata_values";
     public static final String PRODUCT_INVALID_METADATA_FIELDS = "product.invalid_metadata_fields";
+    public static final String PRODUCT_VARIATION_NOT_FOUND = "product.variation_not_found";
 
 }

@@ -2,7 +2,6 @@ package com.example.ecommerceproject.dto;
 
 import static lombok.AccessLevel.PRIVATE;
 
-import java.math.BigDecimal;
 import java.util.Map;
 
 import jakarta.validation.constraints.Min;
@@ -24,9 +23,9 @@ public class ProductVariationCreateRequest {
 
     @NotNull(message = "{validation.quantity_required}")
     @Min(value = 0, message = "{validation.quantity_cannot_be_less_than_zero}")
-    Integer quantityAvailable;
+    Long quantityAvailable;
 
     @Min(value = 0, message = "{validation.price_cannot_be_less_than_zero}")
     @NotNull(message = "{validation.price_required}")
-    BigDecimal price;
+    Double price;
 }

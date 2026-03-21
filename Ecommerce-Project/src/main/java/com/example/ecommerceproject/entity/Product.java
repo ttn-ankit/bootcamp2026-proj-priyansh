@@ -6,6 +6,8 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import com.example.ecommerceproject.audit.Auditable;
+
 import java.util.List;
 
 @Entity
@@ -16,7 +18,7 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @SQLDelete(sql = "UPDATE product SET is_deleted = true WHERE id=?")
 @SQLRestriction("is_deleted = false")
-public class Product {
+public class Product extends Auditable{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;

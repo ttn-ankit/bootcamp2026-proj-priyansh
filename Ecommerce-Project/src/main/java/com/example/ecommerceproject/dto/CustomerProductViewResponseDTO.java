@@ -18,8 +18,8 @@ public class CustomerProductViewResponseDTO {
     String name;
     String brand;
     String description;
-    String isCancellable;
-    String isReturnable;
+    Boolean isCancellable;
+    Boolean isReturnable;
     CategoryResponseDTO category;
-    List<VariationDetailsDTO> variations; 
+    List<VariationDetailsDTO> variations;
 }

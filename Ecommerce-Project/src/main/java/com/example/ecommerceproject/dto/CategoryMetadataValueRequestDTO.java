@@ -17,8 +17,8 @@ import lombok.experimental.FieldDefaults;
 public class CategoryMetadataValueRequestDTO {
     @NotNull(message = "{category.invalid_metadata_field_id}")
     Long metaDataFieldId;
-    
+
     @NotNull(message = "{category.metadata_field_values_required}")
     @Size(min = 1, message = "{category.metadata_field_values_required}")
-    List<String> values;   
+    List<String> values;
 }

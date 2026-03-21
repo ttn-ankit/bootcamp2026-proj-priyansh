@@ -103,13 +103,13 @@ public class SellerProfileController {
         return ResponseEntity.ok(sellerService.getProductVariations(productId, offset, max, sort, order));
     }
 
-    @DeleteMapping("/{productId}")
+    @DeleteMapping("/product/{productId}")
     @Operation(summary = "Delete a product", description = "Soft deletes a specific product.")
     public ResponseEntity<ApiResponse> deleteProduct(@PathVariable Long productId) {
         return ResponseEntity.ok(sellerService.deleteProduct(productId));
     }
 
-    @PutMapping("/{productId}")
+    @PutMapping("/product/{productId}")
     @Operation(summary = "Update a product", description = "Updates optional fields of an existing product.")
     public ResponseEntity<ApiResponse> updateProduct(
             @PathVariable Long productId,

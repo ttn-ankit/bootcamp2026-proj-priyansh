@@ -58,7 +58,7 @@ public class AddressDTO {
     @Size(min = 2, max = 20, message = "{validation.country_length}")
     @Pattern(regexp = "^[a-zA-Z ]+$", message = "{validation.country_invalid}")
     String country;
-    
+
     @Schema(
         description = "Postal / ZIP code of the address",
         example = "110001",

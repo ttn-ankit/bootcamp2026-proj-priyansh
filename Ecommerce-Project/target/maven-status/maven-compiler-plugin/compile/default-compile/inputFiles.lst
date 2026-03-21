@@ -8,7 +8,7 @@
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/config/LocaleContextFilter.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/config/MapperConfig.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/config/SecurityConfig.java
-/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/config/WebConfig.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/config/StringTrimDeserializer.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/controller/AdminController.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/controller/AuthController.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/controller/CustomerController.java
@@ -17,6 +17,7 @@
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/AddressDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/AddressPartialUpdateRequestDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/AddressResponseDTO.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/AdminCategoryResponseDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/ApiResponse.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/ApiResponseDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/BaseRegistrationDTO.java
@@ -24,6 +25,8 @@
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/CategoryMetadataDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/CategoryMetadataValueRequestDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/CategoryResponseDTO.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/CustomerProductListResponseDTO.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/CustomerProductViewResponseDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/CustomerProfileResponseDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/CustomerProfileUpdateRequestDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/CustomerResponseDTO.java
@@ -32,8 +35,13 @@
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/LoginResponseDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/MetadataFieldResponseDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/PasswordUpdateRequestDTO.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/ProductCreateRequest.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/ProductResponseDTO.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/ProductUpdateRequest.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/ProductVariationCreateRequest.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/ProductVariationDTO.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/ProductVariationResponse.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/ProductVariationUpdateRequest.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/RegisterRequestDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/ResetPasswordRequestDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/SellerCategoryResponseDTO.java
@@ -42,6 +50,8 @@
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/SellerRegisterRequestDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/SellerResponseDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/ValidationErrorResponseDTO.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/VariationDetailsDTO.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/dto/VariationListDTO.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/entity/AccessToken.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/entity/ActivationToken.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/entity/Address.java
@@ -73,6 +83,7 @@
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/repository/CategoryRepository.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/repository/CustomerRepository.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/repository/ProductRepository.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/repository/ProductVariationRepository.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/repository/RefreshTokenRepository.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/repository/RoleRepository.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/repository/SellerRepository.java
@@ -96,5 +107,6 @@
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/service/impl/SellerServiceImpl.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/service/impl/UserSessionServiceImpl.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/specs/CategorySpecification.java
+/home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/specs/ProductSpecifications.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/util/JwtUtil.java
 /home/priyansh-awasthi/Project/Ecommerce/Ecommerce-Project/src/main/java/com/example/ecommerceproject/util/MessageKeys.java

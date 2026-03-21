@@ -22,4 +22,3 @@ public class LoginResponseDTO {
     String email;
     String message;
 }
-

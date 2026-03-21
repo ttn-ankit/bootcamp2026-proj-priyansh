@@ -21,7 +21,7 @@ public class CategoryMetadataFieldValues {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
-    
+
     @Column(nullable = false)
     String value;
 

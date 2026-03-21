@@ -46,8 +46,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
            "AND p.isActive = true AND p.isDeleted = false " +
            "AND EXISTS (SELECT v FROM ProductVariations v WHERE v.product = p AND v.isActive = true)")
     Page<Product> findSimilarProducts(
-            @Param("categoryId") Long categoryId, 
-            @Param("excludeProductId") Long excludeProductId, 
+            @Param("categoryId") Long categoryId,
+            @Param("excludeProductId") Long excludeProductId,
             Pageable pageable);
 
     boolean existsByIdAndSeller_User_Id(Long productId, Long userId);

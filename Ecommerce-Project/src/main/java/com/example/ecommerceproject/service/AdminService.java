@@ -26,5 +26,5 @@ public interface AdminService{
     ApiResponse updateCategory(Long categoryId, String categoryName);
     ApiResponse addCategoryMetadataFieldValues(Long cateoryId, List<CategoryMetadataValueRequestDTO> fieldValues);
     Page<ProductResponseDTO> getAllProducts(Map<String, String> params);
-    ApiResponse toggleProductStatus(Long productId, boolean activate); 
+    ApiResponse toggleProductStatus(Long productId, boolean activate);
 }

@@ -63,7 +63,7 @@ public class AdminController {
 
         @RequestParam(defaultValue = "id") String sort,
         @RequestParam(required = false) String email
-    ){ 
+    ){
         return ResponseEntity.ok(adminService.getAllCustomers(
             page, size, sort, email));
     }
@@ -89,7 +89,7 @@ public class AdminController {
     @PatchMapping("/user/{userId}/activate")
     public ResponseEntity<ApiResponseDTO> activateUser(
         @Parameter(description = "User ID to activate", required = true)
-        @PathVariable 
+        @PathVariable
         @Positive(message = "{validation.user_id_positive}") Long userId)
     {
         return ResponseEntity.ok(adminService.activateUser(userId));
@@ -110,10 +110,11 @@ public class AdminController {
     @Operation(summary = "Add a Metadata field", description = "Creates a new, uniquely named metadata field for categories.")
     @PostMapping("/category/metadata-fields")
     public ResponseEntity<ApiResponse> addMetadataField(
-            @Parameter(description = "Name of the metadata field to create", required = true) 
-            @RequestParam 
+            @Parameter(description = "Name of the metadata field to create", required = true)
+            @RequestParam
             @NotBlank(message = "{category.field_name_required}")
             @Size(max = 40, message = "{category.field_name_invalid}")
+            @Pattern(regexp = "^[a-zA-Z0-9\\s\\-_]+$", message = "{validation.field_name_invalid_characters}")
             String fieldName) {
         return ResponseEntity.ok(adminService.addMetadataField(fieldName));
     }
@@ -121,27 +122,27 @@ public class AdminController {
     @Operation(summary = "View all Metadata fields", description = "Fetches a paginated list of all metadata fields. Supports filtering by name.")
     @GetMapping("/category/metadata-fields")
     public ResponseEntity<Page<MetadataFieldResponseDTO>> viewAllMetadataFields(
-            @Parameter(description = "Maximum number of records to return") 
+            @Parameter(description = "Maximum number of records to return")
             @RequestParam(defaultValue = "10")
             @Min(value = 1, message = "{validation.page_size_min}")
-            @Max(value = 100, message = "{validation.page_size_max}") 
+            @Max(value = 100, message = "{validation.page_size_max}")
             int max,
 
-            @Parameter(description = "Offset for pagination") 
-            @RequestParam(defaultValue = "0") 
+            @Parameter(description = "Offset for pagination")
+            @RequestParam(defaultValue = "0")
             @Min(value = 0, message = "{validation.page_offset_negative}")
             int offset,
 
-            @Parameter(description = "Field to sort by") 
-            @RequestParam(defaultValue = "id") 
+            @Parameter(description = "Field to sort by")
+            @RequestParam(defaultValue = "id")
             String sort,
 
-            @Parameter(description = "Sorting order (ASC or DESC)") 
-            @RequestParam(defaultValue = "ASC") 
+            @Parameter(description = "Sorting order (ASC or DESC)")
+            @RequestParam(defaultValue = "ASC")
             String order,
 
-            @Parameter(description = "Optional query string to filter fields by name") 
-            @RequestParam(required = false) 
+            @Parameter(description = "Optional query string to filter fields by name")
+            @RequestParam(required = false)
             String query) {
         return ResponseEntity.ok(adminService.getAllMetadataFields(query, max, offset, sort, order));
     }
@@ -149,8 +150,8 @@ public class AdminController {
     @Operation(summary = "Add a category", description = "Creates a new category. Can optionally be nested under a parent category.")
     @PostMapping("/category")
     public ResponseEntity<ApiResponse> addCategory(
-            @Parameter(description = "Name of the category", required = true) 
-            @RequestParam 
+            @Parameter(description = "Name of the category", required = true)
+            @RequestParam
             @Pattern(regexp = "^[a-zA-Z0-9\\s\\-_]+$", message = "{category.name_invalid}")
             String categoryName,
             @Parameter(description = "Optional ID of the parent category") @RequestParam(required = false) Long parentId) {
@@ -160,28 +161,28 @@ public class AdminController {
     @Operation(summary = "View all categories", description = "Fetches a paginated list of categories. Can be filtered by parent Category ID or name query.")
     @GetMapping("/category/all")
     public ResponseEntity<Page<AdminCategoryResponseDTO>> viewAllCategories(
-            @Parameter(description = "Maximum number of records to return") 
-            @RequestParam(defaultValue = "10") 
+            @Parameter(description = "Maximum number of records to return")
+            @RequestParam(defaultValue = "10")
             int max,
 
-            @Parameter(description = "Offset for pagination") 
-            @RequestParam(defaultValue = "0") 
+            @Parameter(description = "Offset for pagination")
+            @RequestParam(defaultValue = "0")
             int offset,
 
-            @Parameter(description = "Field to sort by") 
-            @RequestParam(defaultValue = "id") 
+            @Parameter(description = "Field to sort by")
+            @RequestParam(defaultValue = "id")
             String sort,
 
-            @Parameter(description = "Sorting order (ASC or DESC)") 
-            @RequestParam(defaultValue = "ASC") 
+            @Parameter(description = "Sorting order (ASC or DESC)")
+            @RequestParam(defaultValue = "ASC")
             String order,
 
-            @Parameter(description = "Optional query string to filter categories by name") 
-            @RequestParam(required = false) 
+            @Parameter(description = "Optional query string to filter categories by name")
+            @RequestParam(required = false)
             String query,
 
-            @Parameter(description = "Optional ID to filter categories by their parent") 
-            @RequestParam(required = false) 
+            @Parameter(description = "Optional ID to filter categories by their parent")
+            @RequestParam(required = false)
             Long categoryId) {
         return ResponseEntity.ok(adminService.getAllCategories(query, categoryId, max, offset, sort, order));
     }
@@ -190,8 +191,8 @@ public class AdminController {
     @PutMapping("/category/{categoryId}")
     public ResponseEntity<ApiResponse> updateCategory(
             @Parameter(description = "ID of the category to update", required = true) @PathVariable Long categoryId,
-            @Parameter(description = "New name for the category", required = true) 
-            @RequestParam 
+            @Parameter(description = "New name for the category", required = true)
+            @RequestParam
             @NotBlank(message = "{category.name_required}")
             @Size(max = 40, message = "{category.name_invalid}")
             String categoryName) {
@@ -218,7 +219,7 @@ public class AdminController {
     @Operation(summary = "Toggle product status", description = "Activate or Deactivate a product by ID")
     public ResponseEntity<ApiResponse> toggleStatus(
             @Parameter(description = "The unique ID of the product", required = true)
-            @PathVariable("id") 
+            @PathVariable("id")
             @Positive(message = "{validation.invalid_id_format}")
             Long id,
             @Parameter(description = "Set to true to activate, false to deactivate", required = true)

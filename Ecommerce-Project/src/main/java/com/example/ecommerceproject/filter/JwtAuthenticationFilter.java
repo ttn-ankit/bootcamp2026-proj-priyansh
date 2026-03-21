@@ -48,21 +48,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
-            
+
             try {
                 if (!jwtUtil.isTokenValid(token)) {
                     filterChain.doFilter(request, response);
                     return;
                 }
-                
+
                 String jti = jwtUtil.extractJti(token);
                 if (!userSessionService.isAccessTokenValid(jti)) {
                     filterChain.doFilter(request, response);
                     return;
                 }
-                
+
                 email = jwtUtil.extractEmail(token);
-                
+
             } catch (io.jsonwebtoken.ExpiredJwtException e) {
                 writeJwtErrorResponse(response, MessageKeys.JWT_TOKEN_EXPIRED);
                 return;
@@ -94,7 +94,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext()
                         .setAuthentication(authentication);
             } catch (Exception e) {
-                
+
             }
         }
 
@@ -103,18 +103,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private void writeJwtErrorResponse(HttpServletResponse response, String messageKey) throws IOException {
         String message = messageService.get(messageKey);
-        
+
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        
+
         String jsonResponse = String.format(
             "{\"timestamp\":\"%s\",\"message\":\"%s\",\"status\":%d}",
             java.time.LocalDateTime.now().toString(),
             message,
             HttpServletResponse.SC_UNAUTHORIZED
         );
-        
+
         response.getWriter().write(jsonResponse);
     }
 }

@@ -18,7 +18,7 @@ public class CategorySpecification {
     public static Specification<Category> categoryNameContains(String query) {
         return (root, cq, cb) -> {
             if (query == null || query.trim().isEmpty()) {
-                return cb.conjunction(); 
+                return cb.conjunction();
             }
             return cb.like(cb.lower(root.get("name")), "%" + query.toLowerCase() + "%");
         };

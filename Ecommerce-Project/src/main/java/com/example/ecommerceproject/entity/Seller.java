@@ -33,7 +33,7 @@ public class Seller extends Auditable{
     String companyName;
 
     @OneToOne(optional=false)
-    @JoinColumn(name="user_id", unique=true)    
+    @JoinColumn(name="user_id", unique=true)
     User user;
 
     @Column(name = "is_approved")

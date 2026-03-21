@@ -15,4 +15,4 @@ public interface ProductVariationRepository extends JpaRepository<ProductVariati
     Optional<ProductVariations> findByIdAndProductId(Long variationId, Long productId);
     long countByProduct_IdAndProduct_IsDeletedFalse(Long productId);
     Optional<ProductVariations> findByIdAndProduct_IdAndProduct_IsDeletedFalse(Long variationId, Long productId);
-}   
+}

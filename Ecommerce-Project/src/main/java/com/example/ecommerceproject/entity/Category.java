@@ -5,13 +5,15 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import java.util.List;
 
+import com.example.ecommerceproject.audit.Auditable;
+
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Category {
+public class Category extends Auditable{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;

@@ -22,6 +22,6 @@ public class ProductVariationUpdateRequest {
     Double price;
 
     Map<String, String> metadata;
-    
+
     Boolean isActive;
 }

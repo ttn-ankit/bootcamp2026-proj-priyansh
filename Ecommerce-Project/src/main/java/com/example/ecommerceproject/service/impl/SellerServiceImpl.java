@@ -33,6 +33,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+import jakarta.validation.Validator;
+import jakarta.validation.ConstraintViolation;
 
 import com.example.ecommerceproject.dto.AddressPartialUpdateRequestDTO;
 import com.example.ecommerceproject.dto.ApiResponse;
@@ -90,6 +94,7 @@ public class SellerServiceImpl implements SellerService {
     final UserSessionService userSessionService;
     final ModelMapper modelMapper;
     final ObjectMapper objectMapper;
+    final Validator validator;
 
     @Override
     @Transactional(readOnly = true)
@@ -211,11 +216,27 @@ public class SellerServiceImpl implements SellerService {
     @Transactional
     public ApiResponse createProductVariation(Long productId, String variationJson, MultipartFile primaryImage,
             MultipartFile[] secondaryImages) {
-        try {
-            // Parse JSON to DTO
-            ProductVariationCreateRequest dto = objectMapper.readValue(variationJson,
-                    ProductVariationCreateRequest.class);
 
+        ProductVariationCreateRequest dto;
+        try {
+            dto = objectMapper.readValue(variationJson, ProductVariationCreateRequest.class);
+        } catch (JsonProcessingException e) {
+            throw new ApiException(messageService.get(MessageKeys.VALIDATION_INVALID_JSON_FORMAT), 400);
+        }
+
+        Set<ConstraintViolation<ProductVariationCreateRequest>> violations = validator.validate(dto);
+        if (!violations.isEmpty()) {
+            StringBuilder errorMessage = new StringBuilder();
+            for (ConstraintViolation<ProductVariationCreateRequest> violation : violations) {
+                if (errorMessage.length() > 0) {
+                    errorMessage.append("; ");
+                }
+                errorMessage.append(violation.getPropertyPath()).append(": ").append(violation.getMessage());
+            }
+            throw new ApiException(errorMessage.toString(), 400);
+        }
+
+        try {
             Seller seller = getActiveSellerByUserId(getCurrentUserId());
             Product product = productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId())
                     .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.PRODUCT_NOT_FOUND), 400));
@@ -224,14 +245,11 @@ public class SellerServiceImpl implements SellerService {
                 throw new ApiException(messageService.get(MessageKeys.PRODUCT_MUST_BE_ACTIVE_TO_ADD_VARIATION), 400);
             }
 
-            // Validate metadata
             validateVariationMetadata(product.getCategory().getId(), productId, dto.getMetadata());
             validateNoDuplicateVariation(productId, dto.getMetadata());
 
-            // Get next variation number for naming
             int nextVariationNumber = getNextVariationNumber(productId);
 
-            // Validate and save images
             String primaryImageName = null;
             if (primaryImage != null && !primaryImage.isEmpty()) {
                 primaryImageName = saveProductImage(productId, nextVariationNumber, primaryImage, true);
@@ -250,11 +268,15 @@ public class SellerServiceImpl implements SellerService {
             return new ApiResponse(messageService.get(MessageKeys.PRODUCT_VARIATION_CREATED_SUCCESSFULLY),
                     variations.getId());
 
+        } catch (ApiException e) {
+            throw e;
         } catch (Exception e) {
-            throw new ApiException(messageService.get(MessageKeys.VALIDATION_FAILED), 400);
+            log.error("Unexpected error while creating product variation for product {}: {}", productId, e.getMessage(), e);
+            throw new ApiException(messageService.get(MessageKeys.ERROR_INTERNAL_SERVER), 500);
         }
     }
 
+    @Transactional(readOnly = true)
     public Page<ProductResponseDTO> getAllProducts(Map<String, String> params) {
         Seller seller = getActiveSellerByUserId(getCurrentUserId());
         int page = Integer.parseInt(params.getOrDefault("offset", "0"));
@@ -268,6 +290,28 @@ public class SellerServiceImpl implements SellerService {
         return productRepository.findAll(spec, pageable)
                 .map(product -> {
                     ProductResponseDTO response = modelMapper.map(product, ProductResponseDTO.class);
+
+                    if (product.getProductVariationList() != null && !product.getProductVariationList().isEmpty()) {
+                        List<ProductVariationResponse> variationDTOs = product.getProductVariationList().stream()
+                                .map(variation -> {
+                                    ProductVariationResponse dto = modelMapper.map(variation, ProductVariationResponse.class);
+
+                                    dto.setProductId(product.getId());
+
+                                    int variationNumber = getVariationNumberFromId(variation.getId());
+
+                                    if (variation.getPrimaryImageName() != null) {
+                                        dto.setPrimaryImageUrl("/api/user/products/" + product.getId() + "/images/" + variation.getPrimaryImageName());
+                                    }
+
+                                    dto.setSecondaryImageUrls(generateSecondaryImageUrls(product.getId(), variationNumber));
+
+                                    return dto;
+                                })
+                                .collect(Collectors.toList());
+                        response.setVariations(variationDTOs);
+                    }
+
                     return response;
                 });
     }
@@ -283,7 +327,21 @@ public class SellerServiceImpl implements SellerService {
 
         Pageable pageable = PageRequest.of(offset, max, Sort.Direction.fromString(order.toUpperCase()), sort);
         return variationRepository.findAllByProductId(productId, pageable)
-                .map(variation -> modelMapper.map(variation, ProductVariationResponse.class));
+                .map(variation -> {
+                    ProductVariationResponse dto = modelMapper.map(variation, ProductVariationResponse.class);
+
+                    dto.setProductId(productId);
+
+                    int variationNumber = getVariationNumberFromId(variation.getId());
+
+                    if (variation.getPrimaryImageName() != null) {
+                        dto.setPrimaryImageUrl("/api/user/products/" + productId + "/images/" + variation.getPrimaryImageName());
+                    }
+
+                    dto.setSecondaryImageUrls(generateSecondaryImageUrls(productId, variationNumber));
+
+                    return dto;
+                });
     }
 
     @Override
@@ -322,10 +380,27 @@ public class SellerServiceImpl implements SellerService {
     @Transactional
     public ApiResponse updateProductVariation(Long productId, Long variationId, String variationJson,
             MultipartFile primaryImage, MultipartFile[] secondaryImages) {
-        try {
-            ProductVariationUpdateRequest dto = objectMapper.readValue(variationJson,
-                    ProductVariationUpdateRequest.class);
 
+        ProductVariationUpdateRequest dto;
+        try {
+            dto = objectMapper.readValue(variationJson, ProductVariationUpdateRequest.class);
+        } catch (JsonProcessingException e) {
+            throw new ApiException(messageService.get(MessageKeys.VALIDATION_INVALID_JSON_FORMAT), 400);
+        }
+
+        Set<ConstraintViolation<ProductVariationUpdateRequest>> violations = validator.validate(dto);
+        if (!violations.isEmpty()) {
+            StringBuilder errorMessage = new StringBuilder();
+            for (ConstraintViolation<ProductVariationUpdateRequest> violation : violations) {
+                if (errorMessage.length() > 0) {
+                    errorMessage.append("; ");
+                }
+                errorMessage.append(violation.getPropertyPath()).append(": ").append(violation.getMessage());
+            }
+            throw new ApiException(errorMessage.toString(), 400);
+        }
+
+        try {
             Seller seller = getActiveSellerByUserId(getCurrentUserId());
             Product product = productRepository.findByIdAndSeller_IdAndIsDeletedFalse(productId, seller.getId())
                     .orElseThrow(() -> new ApiException(messageService.get(MessageKeys.PRODUCT_NOT_FOUND), 400));
@@ -366,8 +441,11 @@ public class SellerServiceImpl implements SellerService {
             variationRepository.save(existingVariation);
             return new ApiResponse(messageService.get(MessageKeys.PRODUCT_VARIATION_UPDATED_SUCCESSFULLY), variationId);
 
+        } catch (ApiException e) {
+            throw e;
         } catch (Exception e) {
-            throw new ApiException(messageService.get(MessageKeys.VALIDATION_FAILED), 400);
+            log.error("Unexpected error while updating product variation {} for product {}: {}", variationId, productId, e.getMessage(), e);
+            throw new ApiException(messageService.get(MessageKeys.ERROR_INTERNAL_SERVER), 500);
         }
     }
 
@@ -411,12 +489,12 @@ public class SellerServiceImpl implements SellerService {
         }
         if (!invalidFields.isEmpty()) {
             throw new ApiException(
-                    messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_FIELDS, new Object[] { invalidFields }),
+                    messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_FIELDS, invalidFields),
                     400);
         }
         if (!invalidValues.isEmpty()) {
             throw new ApiException(
-                    messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_VALUES, new Object[] { invalidValues }),
+                    messageService.get(MessageKeys.PRODUCT_INVALID_METADATA_VALUES, invalidValues),
                     400);
         }
         Page<ProductVariations> existingVariations = variationRepository.findAllByProductId(productId,
@@ -427,7 +505,7 @@ public class SellerServiceImpl implements SellerService {
 
             if (!existingKeys.equals(newKeys)) {
                 throw new ApiException(
-                        messageService.get(MessageKeys.PRODUCT_VARIATION_KEYS_MISMATCH, new Object[] { existingKeys }),
+                        messageService.get(MessageKeys.PRODUCT_VARIATION_KEYS_MISMATCH, existingKeys),
                         400);
             }
         }
@@ -636,6 +714,44 @@ public class SellerServiceImpl implements SellerService {
                 }
             }
         }
+    }
+
+    private int getVariationNumberFromId(Long variationId) {
+
+        return variationId.intValue();
+    }
+
+    private List<String> generateSecondaryImageUrls(Long productId, int variationNumber) {
+        List<String> secondaryUrls = new ArrayList<>();
+        try {
+            Path productDir = Paths.get("uploads/products/" + productId);
+            if (!Files.exists(productDir)) {
+                return secondaryUrls;
+            }
+
+            String basePattern = productId + "v" + variationNumber + "_";
+
+            for (int i = 1; i <= 10; i++) {
+                boolean foundImage = false;
+                for (String extension : Arrays.asList("jpg", "jpeg", "png")) {
+                    String filename = basePattern + i + "." + extension;
+                    Path imagePath = productDir.resolve(filename);
+                    if (Files.exists(imagePath)) {
+                        secondaryUrls.add("/api/user/products/" + productId + "/images/" + filename);
+                        foundImage = true;
+                        break;
+                    }
+                }
+
+                if (!foundImage) {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Error generating secondary image URLs for product {} variation {}: {}",
+                    productId, variationNumber, e.getMessage());
+        }
+        return secondaryUrls;
     }
 
 }

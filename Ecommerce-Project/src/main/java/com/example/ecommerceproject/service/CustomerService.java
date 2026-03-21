@@ -23,7 +23,7 @@ public interface CustomerService {
     List<AddressResponseDTO> getAddresses(Long userId);
     ApiResponseDTO addAddress(Long userId, AddressDTO dto);
     ApiResponseDTO updateAddress(Long userId, Long addressId, AddressPartialUpdateRequestDTO dto);
-    ApiResponseDTO deleteAddress(Long userId, Long addressId); 
+    ApiResponseDTO deleteAddress(Long userId, Long addressId);
     List<CategoryResponseDTO> getCategories(Long categoryId);
     CategoryFilterDetailsDTO getCategoryFilteringDetails(Long categoryId);
     CustomerProductViewResponseDTO getProductDetails(Long productId);

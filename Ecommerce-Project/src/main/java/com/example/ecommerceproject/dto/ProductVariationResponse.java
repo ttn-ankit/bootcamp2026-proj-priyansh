@@ -2,7 +2,6 @@ package com.example.ecommerceproject.dto;
 
 import static lombok.AccessLevel.PRIVATE;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -18,8 +17,8 @@ import lombok.experimental.FieldDefaults;
 public class ProductVariationResponse {
     Long id;
     Long productId;
-    Integer quantityAvailable;
-    BigDecimal price;
+    Long quantityAvailable;
+    Double price;
     Map<String, String> metadata;
     String primaryImageUrl;
     List<String> secondaryImageUrls;

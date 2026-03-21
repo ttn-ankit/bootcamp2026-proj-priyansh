@@ -2,7 +2,11 @@ package com.example.ecommerceproject.service.impl;
 
 import static lombok.AccessLevel.PRIVATE;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +32,7 @@ import com.example.ecommerceproject.dto.CategoryResponseDTO;
 import com.example.ecommerceproject.dto.CustomerResponseDTO;
 import com.example.ecommerceproject.dto.MetadataFieldResponseDTO;
 import com.example.ecommerceproject.dto.ProductResponseDTO;
+import com.example.ecommerceproject.dto.ProductVariationResponse;
 import com.example.ecommerceproject.dto.SellerResponseDTO;
 import com.example.ecommerceproject.entity.Address;
 import com.example.ecommerceproject.entity.Category;
@@ -363,6 +368,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ProductResponseDTO> getAllProducts(Map<String, String> params) {
         int page = Integer.parseInt(params.getOrDefault("offset", "0"));
         int size = Integer.parseInt(params.getOrDefault("max", "10"));
@@ -372,7 +378,32 @@ public class AdminServiceImpl implements AdminService {
         Specification<Product> spec = ProductSpecifications.buildFilter(params);
 
         return productRepository.findAll(spec, pageable)
-                .map(product -> modelMapper.map(product, ProductResponseDTO.class));
+                .map(product -> {
+                    ProductResponseDTO response = modelMapper.map(product, ProductResponseDTO.class);
+
+                    if (product.getProductVariationList() != null && !product.getProductVariationList().isEmpty()) {
+                        List<ProductVariationResponse> variationDTOs = product.getProductVariationList().stream()
+                                .map(variation -> {
+                                    ProductVariationResponse dto = modelMapper.map(variation, ProductVariationResponse.class);
+
+                                    dto.setProductId(product.getId());
+
+                                    int variationNumber = getVariationNumberFromId(variation.getId());
+
+                                    if (variation.getPrimaryImageName() != null) {
+                                        dto.setPrimaryImageUrl("/api/user/products/" + product.getId() + "/images/" + variation.getPrimaryImageName());
+                                    }
+
+                                    dto.setSecondaryImageUrls(generateSecondaryImageUrls(product.getId(), variationNumber));
+
+                                    return dto;
+                                })
+                                .collect(Collectors.toList());
+                        response.setVariations(variationDTOs);
+                    }
+
+                    return response;
+                });
     }
 
     @Override
@@ -473,5 +504,44 @@ public class AdminServiceImpl implements AdminService {
 
     private boolean containsNumbers(String text) {
         return text != null && text.matches(".*\\d.*");
+    }
+
+    private int getVariationNumberFromId(Long variationId) {
+
+        return variationId.intValue();
+    }
+
+    private List<String> generateSecondaryImageUrls(Long productId, int variationNumber) {
+        List<String> secondaryUrls = new ArrayList<>();
+        try {
+            Path productDir = Paths.get("uploads/products/" + productId);
+            if (!Files.exists(productDir)) {
+                return secondaryUrls;
+            }
+
+            String basePattern = productId + "v" + variationNumber + "_";
+
+            for (int i = 1; i <= 10; i++) {
+                boolean foundImage = false;
+                for (String extension : Arrays.asList("jpg", "jpeg", "png")) {
+                    String filename = basePattern + i + "." + extension;
+                    Path imagePath = productDir.resolve(filename);
+                    if (Files.exists(imagePath)) {
+                        secondaryUrls.add("/api/user/products/" + productId + "/images/" + filename);
+                        foundImage = true;
+                        break;
+                    }
+                }
+
+                if (!foundImage) {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+
+            System.err.println("Error generating secondary image URLs for product " + productId +
+                             " variation " + variationNumber + ": " + e.getMessage());
+        }
+        return secondaryUrls;
     }
 }

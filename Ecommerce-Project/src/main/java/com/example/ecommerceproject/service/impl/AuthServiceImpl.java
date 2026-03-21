@@ -204,7 +204,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public ApiResponseDTO logout(String accessTokenValue, String refreshTokenValue) {
         boolean handled = false;
-        
+
         if (accessTokenValue != null && !accessTokenValue.isBlank()) {
             if (jwtUtil.isTokenValid(accessTokenValue)) {
                 String accessTokenJti = jwtUtil.extractJti(accessTokenValue);
@@ -212,7 +212,7 @@ public class AuthServiceImpl implements AuthService {
                 handled = true;
             }
         }
-        
+
         if (refreshTokenValue != null && !refreshTokenValue.isBlank()) {
             if (jwtUtil.isRefreshTokenValid(refreshTokenValue)) {
                 String refreshId = jwtUtil.extractRefreshId(refreshTokenValue);
@@ -222,11 +222,11 @@ public class AuthServiceImpl implements AuthService {
                 }
             }
         }
-        
+
         if (!handled) {
             throw new ApiException(MessageKeys.AUTH_TOKEN_REQUIRED, 401);
         }
-        
+
         return new ApiResponseDTO(
                 messageService.get(MessageKeys.AUTH_LOGOUT_SUCCESS),
                 200);

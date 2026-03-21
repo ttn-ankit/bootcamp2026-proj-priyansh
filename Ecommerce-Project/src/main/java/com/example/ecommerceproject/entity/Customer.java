@@ -27,12 +27,11 @@ public class Customer extends Auditable{
     Long id;
 
     @OneToOne(optional=false)
-    @JoinColumn(name="user_id", unique=true)    
+    @JoinColumn(name="user_id", unique=true)
     User user;
 
     @Column(nullable = false, length = 10)
     String contact;
-
 
     @Column(name = "is_deleted")
     boolean isDeleted;
